@@ -9,6 +9,7 @@
  *   node scripts/fetch-market-data.mjs
  */
 import { writeFile } from "node:fs/promises";
+import { inflateRawSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -64,6 +65,75 @@ const INSTRUMENTS = [
 
 // USD per 1 unit of the currency. USD itself is the numeraire and needs no series.
 const FX = ["EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK", "PLN", "NZD", "SGD"];
+
+/**
+ * The Fama/French research factors. These are monthly *returns*, not prices, so
+ * they are accumulated into a synthetic index starting at 100 before the rest of
+ * the pipeline sees them — `Mkt-RF + RF` is the value-weighted total return of
+ * the market in USD.
+ *
+ * Note these are gross of dividend withholding tax, where an index like MSCI's
+ * NETR is net of it. Over the 307-month overlap the two correlate at 0.9966, but
+ * gross runs roughly 0.66pp/year hotter, so the UI has to say which it is.
+ *
+ * Daily files exist at the same URLs with `_daily` before `_CSV`, going back to
+ * 1926-07-01 for the US series.
+ */
+const FRENCH = [
+  {
+    id: "ff-developed",
+    file: "Developed_3_Factors_CSV.zip",
+    name: "Developed Markets",
+    detail: "Fama/French developed-market total return, gross of dividend withholding tax",
+    grossOfTax: true,
+  },
+  {
+    id: "ff-us",
+    file: "F-F_Research_Data_Factors_CSV.zip",
+    name: "US Market (1926)",
+    detail: "Fama/French US total market return, gross of dividend withholding tax",
+    grossOfTax: true,
+  },
+];
+
+/** Reads the single deflated member out of a zip, without a zip dependency. */
+function unzipSingle(buffer) {
+  if (buffer.readUInt32LE(0) !== 0x04034b50) throw new Error("not a zip file");
+  const method = buffer.readUInt16LE(8);
+  const start = 30 + buffer.readUInt16LE(26) + buffer.readUInt16LE(28);
+  const size = buffer.readUInt32LE(18);
+  const body = size ? buffer.subarray(start, start + size) : buffer.subarray(start);
+  return (method === 0 ? body : inflateRawSync(body)).toString("latin1");
+}
+
+async function frenchFactors(file) {
+  const res = await fetch(
+    `https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/${file}`,
+    { headers: { "User-Agent": "Mozilla/5.0" } },
+  );
+  if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
+  const text = unzipSingle(Buffer.from(await res.arrayBuffer()));
+
+  // Monthly rows are `YYYYMM, Mkt-RF, SMB, HML, RF`. The annual block further
+  // down the same file uses four-digit dates, so it never matches.
+  const months = [];
+  const returns = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*(\d{4})(\d{2})\s*,\s*(-?[\d.]+)\s*,\s*-?[\d.]+\s*,\s*-?[\d.]+\s*,\s*(-?[\d.]+)/);
+    if (!m) continue;
+    const [mktRf, rf] = [Number(m[3]), Number(m[4])];
+    if (mktRf <= -99.98 || rf <= -99.98) continue; // the file's missing-data marker
+    months.push(`${m[1]}-${m[2]}`);
+    returns.push((mktRf + rf) / 100);
+  }
+  if (!months.length) throw new Error(`${file}: no monthly rows parsed`);
+
+  // Accumulate the returns into a price level so the rest of the pipeline, which
+  // works in prices, needs no special case.
+  let level = 100;
+  const values = returns.map((r) => round((level *= 1 + r)));
+  return { months, values };
+}
 
 /**
  * MSCI computes its indices separately in each currency, so these come back
@@ -139,6 +209,58 @@ async function chart(symbol) {
 
 const round = (v) => Number(v.toPrecision(8));
 
+/**
+ * Monthly exchange rates from Eurostat, which publishes a continuous euro/ECU
+ * series back to 1971 — decades further than a market FX feed, and from an
+ * official statistical source rather than a scraped endpoint.
+ *
+ * Eurostat quotes units of each currency per euro; the rest of this project
+ * works in USD per unit, which is `rate(USD) / rate(currency)`.
+ */
+async function eurostatRates() {
+  const url =
+    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ert_bil_eur_m" +
+    "?format=JSON&statinfo=AVG&lang=en";
+  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) throw new Error(`Eurostat: HTTP ${res.status}`);
+  const body = await res.json();
+
+  const currencies = body.dimension.currency.category.index;
+  const times = body.dimension.time.category.index;
+  const currencyAt = Object.fromEntries(Object.entries(currencies).map(([k, v]) => [v, k]));
+  const timeAt = Object.fromEntries(Object.entries(times).map(([k, v]) => [v, k]));
+  const axis = body.id.indexOf("currency");
+  const timeAxis = body.id.indexOf("time");
+
+  // JSON-stat flattens the dimensions into one index; unpick it back to coordinates.
+  const perEuro = {};
+  for (const [key, value] of Object.entries(body.value)) {
+    let rest = Number(key);
+    const coords = [];
+    for (let i = body.size.length - 1; i >= 0; i--) { coords[i] = rest % body.size[i]; rest = Math.floor(rest / body.size[i]); }
+    const code = currencyAt[coords[axis]];
+    (perEuro[code] ??= new Map()).set(timeAt[coords[timeAxis]], value);
+  }
+
+  const usd = perEuro.USD;
+  if (!usd) throw new Error("Eurostat: no USD series");
+
+  const fx = {};
+  for (const code of FX) {
+    const table = code === "EUR" ? null : perEuro[code];
+    if (code !== "EUR" && !table) throw new Error(`Eurostat: no ${code} series`);
+    const months = [...(table ?? usd).keys()]
+      .filter((m) => usd.has(m) && (table ? table.get(m) : 1))
+      .sort();
+    fx[code] = {
+      months,
+      // EUR is quoted against itself at 1, so its USD rate is just the USD row.
+      values: months.map((m) => round(code === "EUR" ? usd.get(m) : usd.get(m) / table.get(m))),
+    };
+  }
+  return fx;
+}
+
 async function main() {
   const instruments = [];
   for (const spec of INSTRUMENTS) {
@@ -172,11 +294,25 @@ async function main() {
     console.log(`${index.name.padEnd(18)} ${months[0]} → ${months.at(-1)}  ${months.length} months × ${MSCI_CURRENCIES.length} currencies`);
   }
 
-  const fx = {};
-  for (const code of FX) {
-    const { months, values } = await chart(`${code}USD=X`);
-    fx[code] = { months, values };
-    console.log(`${code}/USD${" ".repeat(12)} ${months[0]} → ${months.at(-1)}  ${months.length} months`);
+  for (const spec of FRENCH) {
+    const { months, values } = await frenchFactors(spec.file);
+    instruments.push({
+      id: spec.id,
+      symbol: spec.file.replace("_CSV.zip", ""),
+      name: spec.name,
+      detail: spec.detail,
+      currency: "USD",
+      adjusted: true,
+      grossOfTax: spec.grossOfTax,
+      months,
+      values,
+    });
+    console.log(`${spec.name.padEnd(18)} ${months[0]} → ${months.at(-1)}  ${months.length} months`);
+  }
+
+  const fx = await eurostatRates();
+  for (const [code, series] of Object.entries(fx)) {
+    console.log(`${`${code}/USD`.padEnd(18)} ${series.months[0]} → ${series.months.at(-1)}  ${series.months.length} months`);
   }
 
   await writeFile(

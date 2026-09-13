@@ -86,16 +86,47 @@ negative, and the number of timelines where that happened is reported.
 
 Each series carries its own currency and whether it is dividend-adjusted:
 
+| Series | Returns | History from | 10-year windows (EUR) |
+|---|---|---|---|
+| **Developed Markets** (default) | total return, gross of tax | 1990-07 | **313** |
+| US Market (1926) | total return, gross of tax | 1926-07 | 546 (1080 in USD) |
+| MSCI World | net total return | 2000-12 | 188 |
+| MSCI World Index | price return only | 1985-01 | 380 |
+| S&P 500 Total Return | total return | 1988-01 | 344 |
+| US Total Market (VTSMX) | total return | 1992-04 | 293 |
+| MSCI ACWI (ACWI) | total return | 2008-03 | 102 |
+| MSCI World ETF (EUNL, Xetra) | total return | 2009-08 | 85 |
+
+The default is the Fama/French developed-market series: it has the most history
+of any world-equity option here, and covers the dot-com crash and the financial
+crisis, so the "worst" line is a genuinely bad decade rather than an artefact of
+a data set that starts in a bull market. Its one cost is that it reinvests
+dividends *gross* of withholding tax where an index like MSCI's `NETR` is net of
+it — worth roughly 0.5–0.7pp/year, which the app states on screen.
+
+Older instrument rows, for reference:
+
 | Series | Currency | Returns | History from |
 |---|---|---|---|
-| **MSCI World** (default) | 12, computed at source | net total return | 2000-12 |
 | MSCI World ETF (EUNL, Xetra) | EUR | total return | 2009 |
 | MSCI World Index | USD | price return only | 1985 |
 | MSCI ACWI (ACWI) | USD | total return | 2008 |
 | S&P 500 Total Return | USD | total return | 1988 |
 | US Total Market (VTSMX) | USD | total return | 1992 |
 
-MSCI computes its indices separately in each currency, so the default series is
+### Exchange rates
+
+Monthly rates come from Eurostat's `ert_bil_eur_m`, which publishes a continuous
+euro/ECU series back to **1971-01** — the euro replaced the ECU 1:1 in 1999, so
+the series bridges that boundary. Every currency the app offers reaches back past
+1990 except SGD (1999). Eurostat quotes units per euro; the pipeline stores USD
+per unit as `rate(USD) / rate(currency)`.
+
+This matters more than it sounds: the previous market FX feed only went back to
+2003, which silently truncated *every* non-native series at 2003 when displayed
+in EUR. Switching sources restored the full history of all of them.
+
+MSCI computes its indices separately in each currency, so its series is
 already denominated in USD, EUR, GBP, CHF, JPY, CAD, AUD, SEK, NOK, DKK, NZD and
 SGD — no exchange-rate series in the middle, no conversion error, and no history
 lost to one. `NETR` is the net total return variant, dividends reinvested after
@@ -211,9 +242,9 @@ It is a reasonable adapter target, but plan limits and European ETF coverage nee
 
 If the product needs the actual MSCI World index rather than an ETF proxy, MSCI’s own Index API is the cleanest authoritative option. It exposes historical index levels and performance across index variants and currencies, but access is entitlement-based. See the [MSCI Index API](https://developer.msci.com/apis/index-api).
 
-### Currency conversion
+### Currency conversion (superseded)
 
-If the selected price series is not already in EUR, use an exchange-rate series and disclose that currency conversion is included. The ECB publishes historical daily reference exchange rates through its SDMX services; see the [ECB SDMX reference-rate documentation](https://www.ecb.europa.eu/stats/ecb_statistics/sdmx/html/index.fr.html).
+The app now uses Eurostat; this note is kept for background. If the selected price series is not already in EUR, use an exchange-rate series and disclose that currency conversion is included. The ECB publishes historical daily reference exchange rates through its SDMX services; see the [ECB SDMX reference-rate documentation](https://www.ecb.europa.eu/stats/ecb_statistics/sdmx/html/index.fr.html).
 
 ### Instrument default
 

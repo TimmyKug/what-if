@@ -366,12 +366,17 @@ function renderAssumptions(series, result, { instrument, currency, years }) {
       `This series only offers ${result.windows.length} start months for a ${yearsAdj(years)} plan, spanning ${(spread / 12).toFixed(1)} years. Neighbouring windows share almost all of their history, so "best" and "worst" describe two specific start months rather than the full range of what is possible.`,
     );
   }
+  if (instrument.grossOfTax) {
+    warnings.push(
+      `${instrument.name} reinvests dividends before withholding tax. A fund actually receives them after it, which historically costs roughly 0.5–0.7 percentage points a year — so these lines sit a little above what a real tracker would have returned.`,
+    );
+  }
   if (result.depleted) {
     warnings.push(
       `The money ran out before the end in ${result.depleted} of ${result.windows.length} timelines. Those are shown flat at zero from the month the portfolio could no longer cover the withdrawal.`,
     );
   }
-  if (!["msci-world", "msci-world-index", "sp500"].includes(instrument.id)) {
+  if (!["msci-world", "msci-world-index", "sp500", "ff-developed", "ff-us"].includes(instrument.id)) {
     warnings.push(`${instrument.name} here is a tradable fund used as a proxy for the index, not the index itself.`);
   }
 
@@ -385,7 +390,13 @@ function renderAssumptions(series, result, { instrument, currency, years }) {
           ? `${instrument.currency} → converted to ${currency} at historical rates`
           : `${instrument.currency} (no conversion)`
     }</dd>` +
-    `<dt>Return type</dt><dd>${instrument.adjusted ? "Total return (dividends included)" : "Price return (dividends excluded)"}</dd>` +
+    `<dt>Return type</dt><dd>${
+      !instrument.adjusted
+        ? "Price return (dividends excluded)"
+        : instrument.grossOfTax
+          ? "Total return, gross of dividend withholding tax"
+          : "Total return, net of dividend withholding tax"
+    }</dd>` +
     `<dt>History used</dt><dd>${monthLabel(series.months[0])} – ${monthLabel(series.months.at(-1))} · ${series.returns.length} monthly returns</dd>` +
     `<dt>Windows tested</dt><dd>${result.windows.length} overlapping ${yearsAdj(years)} periods, one per start month</dd>` +
     `<dt>Cash-flow order</dt><dd>Each month the balance earns that month's return first, then the payment is added</dd>` +
@@ -460,7 +471,7 @@ async function init() {
 
   ui.instrument.replaceChildren(...data.instruments.map((i) =>
     Object.assign(document.createElement("option"), { value: i.id, textContent: i.name })));
-  ui.instrument.value = "msci-world";
+  ui.instrument.value = "ff-developed";
 
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>
     Object.assign(document.createElement("option"), {
