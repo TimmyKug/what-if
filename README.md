@@ -156,6 +156,12 @@ Months are counted from the start rather than given as dates, which is how the
 use case below states them ("33 months", "60 payments") and keeps each row to one
 field per boundary instead of four.
 
+Direction is a **Pay in / Take out** control rather than a minus sign. The sign
+worked, but it was invisible — a line of hint text was the only thing saying
+withdrawals were possible at all — and it let a field read "−€ -6709" once the
+prefix and the value both carried it. Amounts are now plain magnitudes, and the
+direction shows as accent for money in and red for money out.
+
 ### The first use case, expressed
 
 `Invest now` is one event: **+15,000 in month 0**.

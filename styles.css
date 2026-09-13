@@ -517,7 +517,12 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   border-radius: var(--radius-sm);
 }
 
+/* Direction, amount, cadence: three controls now, so they wrap to two lines
+   rather than squeezing into the rail's width. */
 .plan-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.4rem; align-items: center; }
+.plan-top .direction { grid-column: 1 / -1; justify-self: start; }
+/* Content-width, so "each month" is not clipped to "ea…". */
+.plan-top select { grid-column: 2; width: auto; }
 
 .plan-row select { padding: 0.4rem 1.6rem 0.4rem 0.45rem; background-position: calc(100% - 0.7rem) 50%, calc(100% - 0.45rem) 50%; }
 .plan-row input[type="number"] { padding: 0.4rem 0.45rem; }
@@ -600,3 +605,32 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 .simple-plan { display: grid; gap: 0.6rem; }
 .simple-field { display: grid; gap: 0.3rem; }
 .simple-field > span { font-size: 0.6875rem; color: var(--ink-2); }
+
+/* ---------- pay in / take out ---------- */
+
+/* The sign was doing this job invisibly. Naming the two actions makes the
+   choice discoverable, and lets the amount stay a plain magnitude. */
+.direction {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.direction button {
+  padding: 0.15rem 0.5rem;
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: 0.62rem;
+  cursor: pointer;
+}
+
+.direction button:hover { color: var(--ink); }
+.direction button[data-dir="in"][aria-pressed="true"] { background: rgb(52 229 161 / 0.16); color: var(--accent); }
+.direction button[data-dir="out"][aria-pressed="true"] { background: rgb(232 96 84 / 0.16); color: #e86054; }
+.direction button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.field-row label { font-size: 0.6875rem; color: var(--ink-2); }

@@ -45,18 +45,24 @@
             <input id="initial" type="number" min="0" step="100" value="0" inputmode="numeric" />
           </div>
         </label>
-        <label class="simple-field">
-          <span>Every month</span>
+        <div class="simple-field">
+          <div class="field-row">
+            <label for="monthly">Every month</label>
+            <div class="direction" id="monthly-direction" role="group" aria-label="Pay in or take out">
+              <button type="button" data-dir="in" aria-pressed="true">Pay in</button>
+              <button type="button" data-dir="out" aria-pressed="false">Take out</button>
+            </div>
+          </div>
           <div class="money-input">
             <span class="money-symbol" id="monthly-symbol"></span>
-            <input id="monthly" type="number" step="10" value="100" inputmode="numeric" />
+            <input id="monthly" type="number" min="0" step="10" value="1000" inputmode="numeric" />
           </div>
-        </label>
+        </div>
       </div>
 
       <div id="plan" class="plan" role="group" aria-labelledby="plan-label" hidden></div>
       <button type="button" id="add-event" class="add-event" hidden>Add to plan</button>
-      <p class="hint" id="plan-hint">Negative amounts withdraw instead of paying in.</p>
+      <p class="hint" id="plan-hint">Choose pay in or take out for each amount.</p>
     </div>
 
     <fieldset class="field duration-field">

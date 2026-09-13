@@ -307,6 +307,7 @@ const ui = {
   initial: document.getElementById("initial"),
   initialSymbol: document.getElementById("initial-symbol"),
   monthly: document.getElementById("monthly"),
+  monthlyDirection: document.getElementById("monthly-direction"),
   monthlySymbol: document.getElementById("monthly-symbol"),
   years: document.getElementById("years"),
   months: document.getElementById("months"),
@@ -333,7 +334,7 @@ let seriesCache = null;
  * `from` and `to` are whole months from the start, which is how the README talks
  * about them ("33 months", "60 payments") and avoids four date fields per row.
  */
-let plan = [{ id: 1, amount: 100, cadence: "monthly", from: 1, to: null }];
+let plan = [{ id: 1, amount: 1000, cadence: "monthly", from: 1, to: null }];
 let nextEventId = 2;
 
 /**
@@ -344,10 +345,20 @@ let nextEventId = 2;
  */
 let proMode = false;
 
+let monthlyOut = false;
+
+/** Reflects a direction control's state and returns its multiplier. */
+function setDirection(group, out) {
+  for (const button of group.querySelectorAll("button")) {
+    button.setAttribute("aria-pressed", String((button.dataset.dir === "out") === out));
+  }
+  return out ? -1 : 1;
+}
+
 /** Rewrites the plan to the two events simple mode can express. */
 function setSimplePlan() {
   const initial = Math.max(0, Number(ui.initial.value) || 0);
-  const monthly = Number(ui.monthly.value) || 0;
+  const monthly = Math.abs(Number(ui.monthly.value) || 0) * (monthlyOut ? -1 : 1);
   plan = [];
   if (initial) plan.push({ id: nextEventId++, amount: initial, cadence: "once", from: 0, to: null });
   plan.push({ id: nextEventId++, amount: monthly, cadence: "monthly", from: 1, to: null });
@@ -358,7 +369,10 @@ function readSimpleFromPlan() {
   const lump = plan.find((e) => e.cadence === "once" && e.from === 0);
   const repeating = plan.find((e) => e.cadence === "monthly");
   ui.initial.value = lump ? lump.amount : 0;
-  ui.monthly.value = repeating ? repeating.amount : 0;
+  const amount = repeating ? repeating.amount : 0;
+  monthlyOut = amount < 0;
+  setDirection(ui.monthlyDirection, monthlyOut);
+  ui.monthly.value = Math.abs(amount);
 }
 
 /** True when the plan is something the two simple fields could have produced. */
@@ -410,9 +424,13 @@ function renderPlan(steps) {
     const to = Math.min(event.to ?? steps, steps);
     row.innerHTML =
       `<div class="plan-top">` +
+        `<div class="direction" role="group" aria-label="Pay in or take out">` +
+          `<button type="button" data-field="dir" data-dir="in" aria-pressed="${event.amount >= 0}">Pay in</button>` +
+          `<button type="button" data-field="dir" data-dir="out" aria-pressed="${event.amount < 0}">Take out</button>` +
+        `</div>` +
         `<div class="money-input${event.amount < 0 ? " is-negative" : event.amount > 0 ? " is-positive" : ""}">` +
           `<span class="money-symbol">${symbol}</span>` +
-          `<input type="number" step="10" value="${event.amount}" data-field="amount" inputmode="numeric" aria-label="Amount" />` +
+          `<input type="number" min="0" step="10" value="${Math.abs(event.amount)}" data-field="amount" inputmode="numeric" aria-label="Amount" />` +
         `</div>` +
         `<select data-field="cadence" aria-label="How often">` +
           `<option value="monthly"${once ? "" : " selected"}>each month</option>` +
@@ -432,12 +450,20 @@ function renderPlan(steps) {
 
     row.addEventListener("input", (e) => {
       const field = e.target.dataset.field;
-      if (field === "amount") event.amount = Number(e.target.value) || 0;
+      if (field === "amount") {
+        event.amount = Math.abs(Number(e.target.value) || 0) * (event.amount < 0 ? -1 : 1);
+      }
       else if (field === "cadence") event.cadence = e.target.value;
       else if (field === "from") event.from = Math.max(event.cadence === "once" ? 0 : 1, Math.trunc(Number(e.target.value) || 0));
       else if (field === "to") event.to = Math.max(1, Math.trunc(Number(e.target.value) || 1));
       render();
     });
+    for (const button of row.querySelectorAll('[data-field="dir"]')) {
+      button.addEventListener("click", () => {
+        event.amount = Math.abs(event.amount) * (button.dataset.dir === "out" ? -1 : 1);
+        render();
+      });
+    }
     row.querySelector('[data-field="remove"]').addEventListener("click", () => {
       plan = plan.filter((x) => x !== event);
       if (!plan.length) plan = [{ id: nextEventId++, amount: 0, cadence: "monthly", from: 1, to: null }];
@@ -648,12 +674,11 @@ function render() {
   ui.instrumentHint.textContent = instrument.detail;
 
   const symbol = CURRENCIES[input.currency] ?? input.currency;
-  const monthlyAmount = Number(ui.monthly.value) || 0;
+  const monthlyAmount = Math.abs(Number(ui.monthly.value) || 0);
   ui.initialSymbol.textContent = symbol;
   ui.monthlySymbol.textContent = symbol;
-  // The input shows its own minus sign, so the prefix only carries the colour.
-  ui.monthly.closest(".money-input").classList.toggle("is-negative", monthlyAmount < 0);
-  ui.monthly.closest(".money-input").classList.toggle("is-positive", monthlyAmount > 0);
+  ui.monthly.closest(".money-input").classList.toggle("is-negative", monthlyOut && monthlyAmount > 0);
+  ui.monthly.closest(".money-input").classList.toggle("is-positive", !monthlyOut && monthlyAmount > 0);
 
   const cacheKey = `${instrument.id}|${input.currency}`;
   if (seriesCache?.key !== cacheKey) {
@@ -681,10 +706,10 @@ function render() {
   const years = steps / perYear;
   if (proMode) renderPlan(steps);
   ui.planHint.textContent = !proMode
-    ? "Negative amounts withdraw instead of paying in."
+    ? "Choose pay in or take out for each amount."
     : isSimplePlan()
-      ? "Negative amounts withdraw. Months count from the start."
-      : "Negative amounts withdraw. Switching back to simple replaces this plan with a single monthly amount.";
+      ? "Months count from the start of the plan."
+      : "Switching back to simple replaces this plan with a single monthly amount.";
   const result = runScenario(series, { steps, schedule: buildSchedule(plan, steps) });
   if (!result) {
     ui.chartSub.textContent = "Not enough history for this horizon.";
@@ -718,6 +743,14 @@ async function init() {
 
   for (const control of [ui.initial, ui.monthly]) {
     control.addEventListener("input", () => { setSimplePlan(); render(); });
+  }
+  for (const button of ui.monthlyDirection.querySelectorAll("button")) {
+    button.addEventListener("click", () => {
+      monthlyOut = button.dataset.dir === "out";
+      setDirection(ui.monthlyDirection, monthlyOut);
+      setSimplePlan();
+      render();
+    });
   }
   ui.modeToggle.addEventListener("click", () => setMode(!proMode));
   ui.addEvent.addEventListener("click", () => {
