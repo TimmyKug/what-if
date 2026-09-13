@@ -116,9 +116,9 @@ Each series carries its own currency and whether it is dividend-adjusted:
 
 | Series | Returns | History from | 10-year windows (EUR) |
 |---|---|---|---|
-| **Developed Markets** (default) | total return, gross of tax | 1990-07 | **313** |
+| Developed Markets | total return, gross of tax | 1990-07 | **313** |
 | US Market (1926) | total return, gross of tax | 1926-07 | 547 (1081 in USD) |
-| MSCI World (net return) | net total return | 2000-12 | 189 |
+| **MSCI World (net return)** (default) | net total return | 2000-12 | 189 |
 | MSCI World (price only) | price return only | 1985-01 | 381 |
 | S&P 500 Total Return | total return | 1988-01 | 345 |
 | US Total Market (VTSMX) | total return | 1992-04 | 294 |
@@ -131,7 +131,21 @@ so the exchange rate only binds where it starts later than the equity data. It
 does for the US series (1926 equity, 1971 rates, so 1971 in EUR and 1926 in USD);
 it does not for any of the others, which all start after 1971.
 
-The default, **Developed Markets**, is the Fama/French developed-market portfolio:
+**MSCI World (net return) is the default**, because it is the index most people
+actually hold — IWDA, EUNL and SWDA all track it — and `NETR` is net of dividend
+withholding tax, so it is what a tracker really delivers.
+
+That choice costs history, and the cost is not subtle. The worst ten-year run of
+the same plan is **+2%** on MSCI World but **−30%** on Developed Markets, entirely
+because MSCI's free data starts in December 2000, after the dot-com peak. So when
+a longer comparable series exists, the assumptions panel now names it and states
+its worst outcome. Defaulting to the familiar series is fine; letting it quietly
+understate the downside is not.
+
+For the same reason FTSE Global All Cap is a poor default despite being just as
+widely held: starting in 2008, its worst ten-year run is **+42%**.
+
+**Developed Markets** is the Fama/French developed-market portfolio:
 every listed company in the developed world weighted by market cap, built from the
 underlying stocks rather than repackaged from an index product — which is why it
 starts in 1990 rather than whenever a tracker launched. Its four regions are North

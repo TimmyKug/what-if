@@ -374,8 +374,15 @@ function renderTable(result) {
   }));
 }
 
-function renderAssumptions(series, result, { instrument, currency, years, cadence }) {
+function renderAssumptions(series, result, { instrument, currency, years, cadence, longer }) {
   const warnings = [];
+  if (longer) {
+    warnings.push(
+      `${longer.name} covers the same kind of portfolio from ${longer.from}, ${longer.extra.toLocaleString()} more start dates than this series. ` +
+      `Its worst ${yearsAdj(years)} run ended at ${money.format(longer.worst)} against ${money.format(longer.paidIn)} paid in — ` +
+      `${longer.delta} than the worst shown here. A shorter history does not just blur the range, it can miss the crash altogether.`,
+    );
+  }
   if (!instrument.adjusted) {
     warnings.push(`${instrument.name} is a price index: it excludes dividends, so every line here is lower than a real investor holding the index would have seen.`);
   }
@@ -418,6 +425,40 @@ function renderAssumptions(series, result, { instrument, currency, years, cadenc
     `<dt>Source</dt><dd>${data.source}, fetched ${new Date(data.fetchedAt).toLocaleDateString()}</dd>` +
     `</dl>` +
     warnings.map((w) => `<p class="warn">${w}</p>`).join("");
+}
+
+/**
+ * The longest comparable series, when the one on screen is materially shorter.
+ *
+ * Worth the extra run: the headline worst case is mostly a question of whether
+ * the data reaches back past a crash. The same plan bottoms out at +42% on a
+ * series starting in 2008 and −30% on one starting in 1990.
+ */
+const REFERENCE = "ff-developed";
+
+function longerHistory(instrument, input, steps, result) {
+  if (instrument.id === REFERENCE) return null;
+  const reference = data.instruments.find((i) => i.id === REFERENCE);
+  if (!reference) return null;
+
+  const series = buildSeries(data, reference, input.currency);
+  const run = runScenario(series, {
+    steps, initial: input.initial, contribution: input.contribution, cadence: input.cadence,
+  });
+  if (!run || run.windows <= result.windows) return null;
+
+  const worst = run.paths.worst.at(-1);
+  const paidIn = run.paidIn.at(-1);
+  const here = result.paths.worst.at(-1);
+  return {
+    name: reference.name,
+    from: keyLabel(series.keys[0], series.daily),
+    extra: run.windows - result.windows,
+    worst, paidIn,
+    delta: worst < here
+      ? `${money.format(here - worst)} worse`
+      : `${money.format(worst - here)} better`,
+  };
 }
 
 let renderToken = 0;
@@ -505,7 +546,7 @@ async function render() {
   drawChart(result, years);
   renderCards(result, { ...input, years });
   renderTable(result);
-  renderAssumptions(series, result, { ...input, instrument, years });
+  renderAssumptions(series, result, { ...input, instrument, years, longer: longerHistory(instrument, input, steps, result) });
 }
 
 async function init() {
@@ -513,7 +554,7 @@ async function init() {
 
   ui.instrument.replaceChildren(...data.instruments.map((i) =>
     Object.assign(document.createElement("option"), { value: i.id, textContent: i.name })));
-  ui.instrument.value = "ff-developed";
+  ui.instrument.value = "msci-world";
 
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
