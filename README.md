@@ -154,6 +154,19 @@ Nothing is written until you press Save, which is why there is no notice on arri
 The notice appears the first time something is actually stored, and every saved scenario has a delete button next to it.
 Storage that fails, as in a private window, says so and points at the address bar instead.
 
+### Why there is no consent banner
+
+Not because `localStorage` is not a cookie.
+ePrivacy Art. 5(3) covers "storing of information, or gaining access to information already stored, in the terminal equipment of a user", which is technology-neutral and catches `localStorage` exactly as it catches cookies.
+
+The exemption is what the storage is *for*: Art. 5(3) excludes storage strictly necessary to provide a service the user explicitly requested, and a button labelled "Save this one" storing the thing you asked to save is the textbook case.
+WP29 Opinion 04/2012 lists user-input and interface-preference storage among its examples.
+
+So the load-bearing design decision is that **nothing is written before the click**.
+The whole footprint is two keys, `what-if:scenarios` and `what-if:told`, both written only then.
+Storing anything on arrival — a visitor id, a session marker, an analytics call — would move this out of the exemption and require a banner.
+Adding analytics of any kind is the line to watch.
+
 Two tabs is a real comparison, with one caveat worth knowing: each chart scales its own axis, so the same line height means different money in each.
 For the two legs of the use case below the axes differ by 1.21x.
 The ending value is printed on every line, so read the numbers rather than the heights.

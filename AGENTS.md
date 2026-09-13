@@ -38,6 +38,10 @@ There is no install, lint, or build step — no dependencies, no bundler.
   before it reaches the engine. Resist adding kinds to it: a starting balance is
   a flow at month 0, a wait is a run of zeroes, and a withdrawal is a negative
   payment, so new scenarios should need UI rather than engine changes.
+- Nothing may be written to `localStorage` before the user asks for it. That is
+  what keeps the site outside ePrivacy Art. 5(3) consent and free of a banner —
+  see "Why there is no consent banner" in `README.md`. Analytics of any kind
+  would cross that line.
 - Never fetch straight over `data/`. Stage it, run `verify-data.mjs` against the
   committed copy, then promote — that comparison is what catches a source
   changing meaning while still returning valid JSON.
