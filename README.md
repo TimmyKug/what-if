@@ -89,13 +89,18 @@ Each series carries its own currency and whether it is dividend-adjusted:
 | Series | Returns | History from | 10-year windows (EUR) |
 |---|---|---|---|
 | **Developed Markets** (default) | total return, gross of tax | 1990-07 | **313** |
-| US Market (1926) | total return, gross of tax | 1926-07 | 546 (1080 in USD) |
-| MSCI World | net total return | 2000-12 | 188 |
-| MSCI World Index | price return only | 1985-01 | 380 |
-| S&P 500 Total Return | total return | 1988-01 | 344 |
-| US Total Market (VTSMX) | total return | 1992-04 | 293 |
-| MSCI ACWI (ACWI) | total return | 2008-03 | 102 |
-| MSCI World ETF (EUNL, Xetra) | total return | 2009-08 | 85 |
+| US Market (1926) | total return, gross of tax | 1926-07 | 547 (1081 in USD) |
+| MSCI World | net total return | 2000-12 | 189 |
+| MSCI World Index | price return only | 1985-01 | 381 |
+| S&P 500 Total Return | total return | 1988-01 | 345 |
+| US Total Market (VTSMX) | total return | 1992-04 | 294 |
+| MSCI ACWI (ACWI) | total return | 2008-03 | 103 |
+| MSCI World ETF (EUNL, Xetra) | total return | 2009-08 | 86 |
+
+Usable history is the overlap of the equity series and the exchange-rate series,
+so the exchange rate only binds where it starts later than the equity data. It
+does for the US series (1926 equity, 1971 rates, so 1971 in EUR and 1926 in USD);
+it does not for any of the others, which all start after 1971.
 
 The default is the Fama/French developed-market series: it has the most history
 of any world-equity option here, and covers the dot-com crash and the financial

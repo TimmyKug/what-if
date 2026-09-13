@@ -101,13 +101,15 @@ check("EUR→USD view differs from EUR view by the exchange-rate move",
   `ratio ${(growth(inUsd) / growth(inEur)).toFixed(4)} vs fx ${fxMove.toFixed(4)}`);
 
 // How much history each series actually offers for the default ten-year plan.
+// One window per start month, the last starting `horizon` months before the end.
+const windows = (series, horizon) => Math.max(0, series.returns.length - horizon + 1);
 console.log("\nwindows for a 10-year plan");
 for (const instrument of data.instruments) {
   const eur = buildSeries(data, instrument, "EUR");
   const usd = buildSeries(data, instrument, "USD");
   console.log(
-    `  ${instrument.id.padEnd(17)} EUR ${String(Math.max(0, eur.returns.length - 120)).padStart(4)}` +
-    ` (${eur.months[0]}~)   USD ${String(Math.max(0, usd.returns.length - 120)).padStart(4)} (${usd.months[0]}~)`,
+    `  ${instrument.id.padEnd(17)} EUR ${String(windows(eur, 120)).padStart(4)}` +
+    ` (from ${eur.months[0]})   USD ${String(windows(usd, 120)).padStart(4)} (from ${usd.months[0]})`,
   );
 }
 
