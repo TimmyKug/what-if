@@ -90,12 +90,12 @@ Each series carries its own currency and whether it is dividend-adjusted:
 |---|---|---|---|
 | **Developed Markets** (default) | total return, gross of tax | 1990-07 | **313** |
 | US Market (1926) | total return, gross of tax | 1926-07 | 547 (1081 in USD) |
-| MSCI World | net total return | 2000-12 | 189 |
-| MSCI World Index | price return only | 1985-01 | 381 |
+| MSCI World (net return) | net total return | 2000-12 | 189 |
+| MSCI World (price only) | price return only | 1985-01 | 381 |
 | S&P 500 Total Return | total return | 1988-01 | 345 |
 | US Total Market (VTSMX) | total return | 1992-04 | 294 |
 | MSCI ACWI (ACWI) | total return | 2008-03 | 103 |
-| MSCI World ETF (EUNL, Xetra) | total return | 2009-08 | 86 |
+| MSCI World ETF (EUNL) | total return | 2009-08 | 86 |
 
 Usable history is the overlap of the equity series and the exchange-rate series,
 so the exchange rate only binds where it starts later than the equity data. It
@@ -142,6 +142,14 @@ late 2025), the display currency is applied by converting month by month at the
 historical rate. Usable history is then the overlap of the price series and the
 exchange-rate series, and gaps in the monthly FX data carry the last known rate
 forward.
+
+MSCI's public endpoint serves its price index only from 1997-01 and its total
+return variants only from 2000-12; there is no earlier date it will accept. The
+index itself is based at 100 on 1969-12-31, but that history is in MSCI's
+licensed products, not the public endpoint. The `MSCI World (price only)` row
+reaches back to 1985 because it comes from a market data feed rather than from
+MSCI directly — it excludes dividends, so it is a poor choice for a savings
+backtest even though it is the longest MSCI series here.
 
 ### On the MSCI source
 

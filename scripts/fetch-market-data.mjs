@@ -24,16 +24,16 @@ const INSTRUMENTS = [
   {
     id: "msci-world-etf",
     symbol: "EUNL.DE",
-    name: "MSCI World ETF",
-    detail: "iShares Core MSCI World UCITS ETF (EUNL, Xetra, accumulating)",
+    name: "MSCI World ETF (EUNL)",
+    detail: "iShares Core MSCI World UCITS ETF from 2009 — a real tracker, not the index",
     currency: "EUR",
     adjusted: true,
   },
   {
     id: "msci-world-index",
     symbol: "^990100-USD-STRD",
-    name: "MSCI World Index",
-    detail: "MSCI World price index, long history, excludes dividends",
+    name: "MSCI World (price only)",
+    detail: "MSCI World price index from 1985 — excludes dividends, so it understates returns by roughly 2%/year",
     currency: "USD",
     adjusted: false,
   },
@@ -84,7 +84,7 @@ const FRENCH = [
     id: "ff-developed",
     file: "Developed_3_Factors_CSV.zip",
     name: "Developed Markets",
-    detail: "Fama/French developed-market total return, gross of dividend withholding tax",
+    detail: "Fama/French developed-market total return from 1990, gross of dividend withholding tax",
     grossOfTax: true,
   },
   {
@@ -149,8 +149,8 @@ const MSCI_INDICES = [
   {
     id: "msci-world",
     code: "990100",
-    name: "MSCI World",
-    detail: "MSCI World Net Total Return index, computed by MSCI in each currency",
+    name: "MSCI World (net return)",
+    detail: "MSCI World Net Total Return index from 2000, computed by MSCI in each currency",
   },
 ];
 
