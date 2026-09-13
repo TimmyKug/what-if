@@ -342,10 +342,11 @@ function renderTable(result) {
   const paidIn = result.paidIn.at(-1);
   const sorted = Float64Array.from(result.finals).sort();
   const at = (q) => sorted[Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1)))];
+  // Highest outcome first, so the column reads down from best to worst.
   const rows = [
-    ["Worst", at(0), "worst"], ["10th percentile", at(0.1)], ["25th percentile", at(0.25)],
-    ["Median", at(0.5), "median"], ["75th percentile", at(0.75)], ["90th percentile", at(0.9)],
-    ["Best", at(1), "best"],
+    ["Best", at(1), "best"], ["90th percentile", at(0.9)], ["75th percentile", at(0.75)],
+    ["Median", at(0.5), "median"], ["25th percentile", at(0.25)], ["10th percentile", at(0.1)],
+    ["Worst", at(0), "worst"],
   ];
 
   ui.tableBody.replaceChildren(...rows.map(([label, value, markKey]) => {
