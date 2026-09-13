@@ -64,8 +64,11 @@ The refresh workflow stages a fetch, verifies it against the committed copy, and
   payment, so new scenarios should need UI rather than engine changes.
 - Nothing may be written to `localStorage` before the user asks for it. That is
   what keeps the site outside ePrivacy Art. 5(3) consent and free of a banner —
-  see "Why there is no consent banner" in `README.md`. Analytics of any kind
-  would cross that line.
+  see "Why there is no consent banner" below. Analytics would cross that line, and
+  so would any third-party embed that runs on load — the Buy Me a Coffee widget
+  script touches `document.cookie` and injects iframes, which is typical rather
+  than unusual for paste-this-snippet embeds. Check before adding one; a local
+  link costs nothing and stores nothing.
 - Figures quoted in `README.md` and `docs/data.md` are snapshots, dated in the
   text, not generated. The weekly refresh moves them. Re-date rather than
   silently correcting, or leave them approximate — the point they illustrate is
