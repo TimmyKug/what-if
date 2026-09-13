@@ -146,6 +146,11 @@ The whole scenario lives in the query string, so a link is the unit of sharing, 
 
 Events encode as `cadence:amount:from[:to]` — `m:1000:1` is a thousand a month from month one, `o:30000:33` a lump at month 33.
 
+**Saved scenarios** keep named plans in `localStorage`, as the same query strings the URL uses — saving is just remembering a link.
+Nothing is written until you press Save, which is why there is no notice on arrival: a visitor who never saves leaves no trace.
+The notice appears the first time something is actually stored, and every saved scenario has a delete button next to it.
+Storage that fails, as in a private window, says so and points at the address bar instead.
+
 Two tabs is a real comparison, with one caveat worth knowing: each chart scales its own axis, so the same line height means different money in each.
 For the two legs of the use case below the axes differ by 1.21x.
 The ending value is printed on every line, so read the numbers rather than the heights.

@@ -686,3 +686,34 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 /* A reference line, like Paid in — dotted so the two are never confused. */
 .series-line--fixed { stroke-dasharray: 1 4; stroke-linecap: round; stroke-width: 2; }
+
+/* ---------- saved scenarios ---------- */
+
+.saved-list { display: grid; gap: 0.3rem; }
+
+.saved-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.saved-item button {
+  background: none;
+  border: 0;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.saved-item .saved-open { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-item .saved-open:hover { color: var(--accent); }
+.saved-item .saved-remove { color: var(--ink-3); font-size: 0.8rem; }
+.saved-item .saved-remove:hover { color: #e86054; }
+
+.saved-empty { font-size: 0.6875rem; color: var(--ink-3); }

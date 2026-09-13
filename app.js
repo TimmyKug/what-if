@@ -314,6 +314,9 @@ const ui = {
   fixedRate: document.getElementById("fixed-rate"),
   fixedRateRow: document.getElementById("fixed-rate-row"),
   fixedNote: document.getElementById("fixed-note"),
+  saveScenario: document.getElementById("save-scenario"),
+  savedList: document.getElementById("saved-list"),
+  savedHint: document.getElementById("saved-hint"),
   plan: document.getElementById("plan"),
   addEvent: document.getElementById("add-event"),
   simplePlan: document.getElementById("simple-plan"),
@@ -360,6 +363,14 @@ let nextEventId = 2;
  */
 let proMode = false;
 let lastInstrumentId = null;
+
+/** A starting point for the name prompt, from what is on screen. */
+function suggestName() {
+  const instrument = data?.instruments.find((i) => i.id === ui.instrument.value);
+  const years = Number(ui.years.value) || 0;
+  const months = Number(ui.months.value) || 0;
+  return `${instrument ? instrument.name : "Scenario"}, ${durationLabel({ years, months })}`;
+}
 
 /* ------------------------------------------------------------ shareable url */
 
@@ -423,6 +434,70 @@ function applyState(search) {
   const instrument = params.get("i");
   if (instrument) lastInstrumentId = instrument; // do not re-clamp the horizon
   return { instrument, pro: params.get("pro") === "1" };
+}
+
+/* -------------------------------------------------------- saved scenarios */
+
+/**
+ * Named scenarios, kept in localStorage as query strings — the same format the
+ * URL already uses, so saving is just remembering a link.
+ *
+ * Nothing is written until someone presses Save, which is why there is no
+ * notice on arrival: a visitor who never saves leaves no trace. The notice
+ * appears the first time something is actually stored.
+ */
+const SAVED_KEY = "what-if:scenarios";
+const NOTICE_KEY = "what-if:told";
+
+function readSaved() {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((s) => s && typeof s.name === "string") : [];
+  } catch {
+    return []; // private browsing, disabled storage, or something else's key
+  }
+}
+
+function writeSaved(scenarios) {
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(scenarios));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function renderSaved(message) {
+  const scenarios = readSaved();
+  if (!scenarios.length) {
+    ui.savedList.replaceChildren(Object.assign(document.createElement("p"), {
+      className: "saved-empty",
+      textContent: "Nothing saved yet. Bookmarking the page works too — the whole scenario is in the address bar.",
+    }));
+  } else {
+    ui.savedList.replaceChildren(...scenarios.map((scenario) => {
+      const row = document.createElement("div");
+      row.className = "saved-item";
+      row.innerHTML =
+        `<button type="button" class="saved-open">${scenario.name}</button>` +
+        `<button type="button" class="saved-remove" aria-label="Delete ${scenario.name}">✕</button>`;
+      row.querySelector(".saved-open").addEventListener("click", () => {
+        const restored = applyState(scenario.query);
+        if (restored?.instrument) ui.instrument.value = restored.instrument;
+        lastInstrumentId = restored?.instrument ?? lastInstrumentId;
+        setMode(restored?.pro === true || !isSimplePlan());
+      });
+      row.querySelector(".saved-remove").addEventListener("click", () => {
+        writeSaved(readSaved().filter((x) => x !== scenario && x.name !== scenario.name));
+        renderSaved();
+      });
+      return row;
+    }));
+  }
+  ui.savedHint.textContent = message ?? (scenarios.length
+    ? "Kept in this browser only, on this device. Nothing is sent anywhere."
+    : "");
 }
 
 /** replaceState, so typing a number does not fill the back button with history. */
@@ -889,6 +964,22 @@ async function init() {
       render();
     });
   }
+  ui.saveScenario.addEventListener("click", () => {
+    const name = (prompt("Name this scenario", suggestName()) ?? "").trim();
+    if (!name) return;
+    const scenarios = readSaved().filter((s) => s.name !== name);
+    scenarios.push({ name, query: encodeState(readInputs()) });
+    const stored = writeSaved(scenarios);
+    const first = stored && !localStorage.getItem(NOTICE_KEY);
+    if (first) localStorage.setItem(NOTICE_KEY, "1");
+    renderSaved(!stored
+      ? "This browser refused to store it — private mode, most likely. The address bar still holds the scenario."
+      : first
+        ? "Saved in this browser's local storage, on this device only. Nothing is sent anywhere, and you can delete it with the ✕."
+        : undefined);
+  });
+  renderSaved();
+
   ui.modeToggle.addEventListener("click", () => setMode(!proMode));
   ui.addEvent.addEventListener("click", () => {
     plan.push({ id: nextEventId++, amount: 0, cadence: "once", from: 0, to: null });
