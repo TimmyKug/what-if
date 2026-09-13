@@ -768,18 +768,22 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 .topbar { justify-content: space-between; }
 
+/* Quiet text, not buttons. A slim header carries two words better than it
+   carries two bordered pills. */
 .about-open {
-  padding: 0.25rem 0.65rem;
+  padding: 0;
   background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--ink-2);
+  border: 0;
+  color: var(--ink-3);
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
 }
 
-.about-open:hover { color: var(--accent); border-color: var(--accent); }
+.about-open:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
+.about-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .about {
   max-width: 30rem;
@@ -827,7 +831,6 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 /* ---------- header links ---------- */
 
-.topbar-links { display: flex; align-items: center; gap: 0.4rem; }
-a.about-open { text-decoration: none; }
+.topbar-links { display: flex; align-items: center; gap: 0.9rem; }
 .about-foot a { color: var(--ink-2); }
 .about-foot a:hover { color: var(--accent); }
