@@ -824,3 +824,10 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 .coffee:hover { background: rgb(52 229 161 / 0.24); }
 
 .about-foot { margin: 0 !important; font-size: 0.7rem !important; color: var(--ink-3) !important; }
+
+/* ---------- header links ---------- */
+
+.topbar-links { display: flex; align-items: center; gap: 0.4rem; }
+a.about-open { text-decoration: none; }
+.about-foot a { color: var(--ink-2); }
+.about-foot a:hover { color: var(--accent); }
