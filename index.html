@@ -32,10 +32,31 @@
     </div>
 
     <div class="field">
-      <span class="field-label" id="plan-label">Plan</span>
-      <div id="plan" class="plan" role="group" aria-labelledby="plan-label"></div>
-      <button type="button" id="add-event" class="add-event">Add a payment</button>
-      <p class="hint">Negative amounts withdraw instead of paying in. Months count from the start.</p>
+      <div class="plan-head">
+        <span class="field-label" id="plan-label">Plan</span>
+        <button type="button" id="mode-toggle" class="mode-toggle" aria-pressed="false">Pro mode</button>
+      </div>
+
+      <div id="simple-plan" class="simple-plan">
+        <label class="simple-field">
+          <span>Start with</span>
+          <div class="money-input">
+            <span class="money-symbol" id="initial-symbol"></span>
+            <input id="initial" type="number" min="0" step="100" value="0" inputmode="numeric" />
+          </div>
+        </label>
+        <label class="simple-field">
+          <span>Every month</span>
+          <div class="money-input">
+            <span class="money-symbol money-symbol--plus" id="monthly-symbol"></span>
+            <input id="monthly" type="number" step="10" value="100" inputmode="numeric" />
+          </div>
+        </label>
+      </div>
+
+      <div id="plan" class="plan" role="group" aria-labelledby="plan-label" hidden></div>
+      <button type="button" id="add-event" class="add-event" hidden>Add to plan</button>
+      <p class="hint" id="plan-hint">Negative amounts withdraw instead of paying in.</p>
     </div>
 
     <fieldset class="field duration-field">

@@ -301,6 +301,13 @@ const ui = {
   currency: document.getElementById("currency"),
   plan: document.getElementById("plan"),
   addEvent: document.getElementById("add-event"),
+  simplePlan: document.getElementById("simple-plan"),
+  modeToggle: document.getElementById("mode-toggle"),
+  planHint: document.getElementById("plan-hint"),
+  initial: document.getElementById("initial"),
+  initialSymbol: document.getElementById("initial-symbol"),
+  monthly: document.getElementById("monthly"),
+  monthlySymbol: document.getElementById("monthly-symbol"),
   years: document.getElementById("years"),
   months: document.getElementById("months"),
   horizonHint: document.getElementById("horizon-hint"),
@@ -328,6 +335,49 @@ let seriesCache = null;
  */
 let plan = [{ id: 1, amount: 100, cadence: "monthly", from: 1, to: null }];
 let nextEventId = 2;
+
+/**
+ * Simple mode is a view over the same event list, not a second model: it edits a
+ * lump at month 0 and one repeating payment covering the whole horizon. The
+ * engine sees a schedule either way, so the toggle changes what is editable
+ * rather than what is computed.
+ */
+let proMode = false;
+
+/** Rewrites the plan to the two events simple mode can express. */
+function setSimplePlan() {
+  const initial = Math.max(0, Number(ui.initial.value) || 0);
+  const monthly = Number(ui.monthly.value) || 0;
+  plan = [];
+  if (initial) plan.push({ id: nextEventId++, amount: initial, cadence: "once", from: 0, to: null });
+  plan.push({ id: nextEventId++, amount: monthly, cadence: "monthly", from: 1, to: null });
+}
+
+/** Fills the simple fields from the plan, for the trip back from pro mode. */
+function readSimpleFromPlan() {
+  const lump = plan.find((e) => e.cadence === "once" && e.from === 0);
+  const repeating = plan.find((e) => e.cadence === "monthly");
+  ui.initial.value = lump ? lump.amount : 0;
+  ui.monthly.value = repeating ? repeating.amount : 0;
+}
+
+/** True when the plan is something the two simple fields could have produced. */
+function isSimplePlan() {
+  return plan.every((e) =>
+    (e.cadence === "once" && e.from === 0) ||
+    (e.cadence === "monthly" && e.from === 1 && (e.to === null || e.to === undefined)));
+}
+
+function setMode(pro) {
+  proMode = pro;
+  ui.modeToggle.setAttribute("aria-pressed", String(pro));
+  ui.modeToggle.textContent = pro ? "Simple" : "Pro mode";
+  ui.simplePlan.hidden = pro;
+  ui.plan.hidden = !pro;
+  ui.addEvent.hidden = !pro;
+  if (!pro) { readSimpleFromPlan(); setSimplePlan(); }
+  render();
+}
 
 /** Net cash flow per month, which is all the engine needs to know. */
 function buildSchedule(events, steps) {
@@ -590,6 +640,12 @@ function render() {
   ui.instrument.value = instrument.id;
   ui.instrumentHint.textContent = instrument.detail;
 
+  const symbol = CURRENCIES[input.currency] ?? input.currency;
+  const monthlyAmount = Number(ui.monthly.value) || 0;
+  ui.initialSymbol.textContent = symbol;
+  ui.monthlySymbol.textContent = (monthlyAmount < 0 ? "−" : "+") + symbol;
+  ui.monthlySymbol.classList.toggle("money-symbol--plus", monthlyAmount >= 0);
+
   const cacheKey = `${instrument.id}|${input.currency}`;
   if (seriesCache?.key !== cacheKey) {
     seriesCache = { key: cacheKey, series: buildSeries(data, instrument, input.currency) };
@@ -614,7 +670,12 @@ function render() {
     ? `Only ${durationLabel(horizon)} of history is available, so that is what is shown.`
     : "";
   const years = steps / perYear;
-  renderPlan(steps);
+  if (proMode) renderPlan(steps);
+  ui.planHint.textContent = !proMode
+    ? "Negative amounts withdraw instead of paying in."
+    : isSimplePlan()
+      ? "Negative amounts withdraw. Months count from the start."
+      : "Negative amounts withdraw. Switching back to simple replaces this plan with a single monthly amount.";
   const result = runScenario(series, { steps, schedule: buildSchedule(plan, steps) });
   if (!result) {
     ui.chartSub.textContent = "Not enough history for this horizon.";
@@ -646,6 +707,10 @@ async function init() {
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
 
+  for (const control of [ui.initial, ui.monthly]) {
+    control.addEventListener("input", () => { setSimplePlan(); render(); });
+  }
+  ui.modeToggle.addEventListener("click", () => setMode(!proMode));
   ui.addEvent.addEventListener("click", () => {
     plan.push({ id: nextEventId++, amount: 0, cadence: "once", from: 0, to: null });
     render();
@@ -654,7 +719,8 @@ async function init() {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);
-  render();
+  // Sync the DOM with the starting mode rather than trusting the markup to match.
+  setMode(proMode);
 }
 
 init();

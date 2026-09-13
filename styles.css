@@ -37,6 +37,10 @@ html {
 
 * { box-sizing: border-box; }
 
+/* A class that sets `display` outranks the browser's own [hidden] rule, so
+   hiding an element with the attribute needs saying outright. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -511,9 +515,12 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 .plan-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.4rem; align-items: center; }
 
-.plan-row .money-input input { padding-left: 2.4rem; }
 .plan-row select { padding: 0.4rem 1.6rem 0.4rem 0.45rem; background-position: calc(100% - 0.7rem) 50%, calc(100% - 0.45rem) 50%; }
 .plan-row input[type="number"] { padding: 0.4rem 0.45rem; }
+
+/* After the shorthand above, which would otherwise reset the room the currency
+   symbol sits in — same specificity, so source order decides. */
+.plan-row .money-input input { padding-left: 2.4rem; }
 
 /* When and for how long — the row's second line. */
 .plan-when {
@@ -554,3 +561,31 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 }
 
 .add-event:hover { border-color: var(--accent); color: var(--ink); }
+
+/* ---------- simple / pro plan ---------- */
+
+.plan-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+
+.mode-toggle {
+  padding: 0.15rem 0.5rem;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.mode-toggle:hover { color: var(--ink); border-color: var(--ink-3); }
+
+.mode-toggle[aria-pressed="true"] {
+  background: rgb(52 229 161 / 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.simple-plan { display: grid; gap: 0.6rem; }
+.simple-field { display: grid; gap: 0.3rem; }
+.simple-field > span { font-size: 0.6875rem; color: var(--ink-2); }

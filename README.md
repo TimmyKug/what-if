@@ -121,6 +121,16 @@ longer than the available history is capped at it and the control says so.
 
 ## The plan
 
+The rail opens in **simple mode** — a starting amount and a monthly figure, which
+is what almost every plan is. **Pro mode** swaps those two fields for the event
+list underneath them.
+
+They are the same model, not two. Simple mode edits exactly two events, so the
+engine cannot tell which mode produced a plan; the toggle changes what is
+editable rather than what is computed. Switching back from pro replaces the plan
+with a single monthly amount, and the hint says so before you do it rather than
+dropping steps quietly.
+
 A scenario is a list of cash-flow events, and nothing else. There is no separate
 starting amount, no waiting period and no withdrawal type, because a schedule
 already expresses all three:
