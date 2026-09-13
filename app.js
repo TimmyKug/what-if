@@ -105,6 +105,27 @@ const yearsAdj = (n) => `${n}-year`;
 
 const CADENCE_WORD = { monthly: "month", weekly: "week", daily: "trading day" };
 
+/**
+ * Grouped so the dropdown says which series are alternatives for each other.
+ * Developed Markets and MSCI World cover the same companies — they correlate at
+ * 0.9966 — and the only reason to pick one over the other is where its history
+ * starts, which is why each option carries its start year.
+ */
+const GROUPS = [
+  {
+    label: "Developed world — the MSCI World universe",
+    ids: ["msci-world", "ff-developed", "msci-world-etf", "msci-world-index"],
+  },
+  {
+    label: "World including emerging markets",
+    ids: ["msci-acwi", "ftse-all-world"],
+  },
+  {
+    label: "United States only",
+    ids: ["sp500", "us-total-market", "ff-us"],
+  },
+];
+
 /* -------------------------------------------------------------------- chart */
 
 const svg = document.getElementById("chart");
@@ -301,6 +322,41 @@ function readInputs() {
   };
 }
 
+/** Rebuilt per dataset, since daily and monthly series start in different years. */
+function renderInstrumentOptions(data) {
+  const byId = new Map(data.instruments.map((i) => [i.id, i]));
+  const selected = ui.instrument.value;
+  const seen = new Set();
+  const groups = GROUPS.map(({ label, ids }) => {
+    const group = document.createElement("optgroup");
+    group.label = label;
+    for (const id of ids) {
+      const instrument = byId.get(id);
+      if (!instrument) continue;
+      seen.add(id);
+      const year = String(instrument.keys[0]).slice(0, 4);
+      group.append(Object.assign(document.createElement("option"), {
+        value: id, textContent: `${instrument.name} · from ${year}`,
+      }));
+    }
+    return group;
+  }).filter((g) => g.childElementCount);
+
+  // Anything a group forgets still has to appear, rather than vanish silently.
+  const rest = data.instruments.filter((i) => !seen.has(i.id));
+  if (rest.length) {
+    const group = document.createElement("optgroup");
+    group.label = "Other";
+    group.append(...rest.map((i) => Object.assign(document.createElement("option"), {
+      value: i.id, textContent: `${i.name} · from ${String(i.keys[0]).slice(0, 4)}`,
+    })));
+    groups.push(group);
+  }
+
+  ui.instrument.replaceChildren(...groups);
+  if (selected) ui.instrument.value = selected;
+}
+
 function renderLegend() {
   ui.legend.replaceChildren(...[...SERIES, PAID_IN].map((s) => {
     const item = document.createElement("div");
@@ -475,9 +531,11 @@ async function render() {
   // monthly dataset reaches further back, so it stays the default.
   const resolution = input.cadence === "monthly" ? "monthly" : "daily";
   if (!datasets[resolution]) host.dataset.loading = "true";
+  const previous = data;
   data = await dataset(resolution);
   if (token !== renderToken) return;
   host.dataset.loading = "false";
+  if (data !== previous) renderInstrumentOptions(data);
 
   const instrument = data.instruments.find((i) => i.id === input.instrumentId) ?? data.instruments[0];
   ui.instrument.value = instrument.id;
@@ -552,8 +610,7 @@ async function render() {
 async function init() {
   data = await dataset("monthly");
 
-  ui.instrument.replaceChildren(...data.instruments.map((i) =>
-    Object.assign(document.createElement("option"), { value: i.id, textContent: i.name })));
+  renderInstrumentOptions(data);
   ui.instrument.value = "msci-world";
 
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>

@@ -493,3 +493,15 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   text-transform: uppercase;
   vertical-align: 1px;
 }
+
+/* Group headings inside the instrument dropdown. */
+select optgroup {
+  background: var(--panel);
+  color: var(--ink-3);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+select optgroup option { color: var(--ink); font-size: 14px; letter-spacing: 0; font-weight: 400; }

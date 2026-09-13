@@ -131,6 +131,25 @@ so the exchange rate only binds where it starts later than the equity data. It
 does for the US series (1926 equity, 1971 rates, so 1971 in EUR and 1926 in USD);
 it does not for any of the others, which all start after 1971.
 
+The dropdown groups the series by the universe they cover, and stamps each with
+its start year, because within a group the *only* reason to prefer one over
+another is where its history begins:
+
+```
+Developed world — the MSCI World universe
+    MSCI World (net return) · from 2000
+    Developed Markets · from 1990
+    MSCI World ETF (EUNL) · from 2009
+    MSCI World (price only) · from 1985
+World including emerging markets
+    MSCI ACWI (net return) · from 2000
+    FTSE Global All Cap · from 2008
+United States only
+    S&P 500 · from 1988
+    US Total Market · from 1992
+    US Market (1926) · from 1926
+```
+
 **MSCI World (net return) is the default**, because it is the index most people
 actually hold — IWDA, EUNL and SWDA all track it — and `NETR` is net of dividend
 withholding tax, so it is what a tracker really delivers.
