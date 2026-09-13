@@ -110,20 +110,14 @@ const CADENCE_WORD = { monthly: "month", weekly: "week", daily: "trading day" };
  * Developed Markets and MSCI World cover the same companies — they correlate at
  * 0.9966 — and the only reason to pick one over the other is where its history
  * starts, which is why each option carries its start year.
+ *
+ * Headings stay short because a native select sizes its popup to the widest
+ * option and clips anything longer; the hint under the select carries the detail.
  */
 const GROUPS = [
-  {
-    label: "Developed world — the MSCI World universe",
-    ids: ["msci-world", "ff-developed", "msci-world-etf", "msci-world-index"],
-  },
-  {
-    label: "World including emerging markets",
-    ids: ["msci-acwi", "ftse-all-world"],
-  },
-  {
-    label: "United States only",
-    ids: ["sp500", "us-total-market", "ff-us"],
-  },
+  { label: "Developed world", ids: ["msci-world", "ff-developed", "msci-world-etf", "msci-world-index"] },
+  { label: "World + emerging", ids: ["msci-acwi", "ftse-all-world"] },
+  { label: "United States", ids: ["sp500", "us-total-market", "ff-us"] },
 ];
 
 /* -------------------------------------------------------------------- chart */
