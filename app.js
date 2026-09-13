@@ -1052,6 +1052,12 @@ async function init() {
   });
   renderSaved();
 
+  const about = document.getElementById("about");
+  document.getElementById("about-open").addEventListener("click", () => about.showModal());
+  document.getElementById("about-close").addEventListener("click", () => about.close());
+  // Clicking the backdrop closes it; the dialog itself sits inside those bounds.
+  about.addEventListener("click", (e) => { if (e.target === about) about.close(); });
+
   ui.modeToggle.addEventListener("click", () => setMode(!proMode));
   ui.addEvent.addEventListener("click", () => {
     plan.push({ id: nextEventId++, amount: 0, out: false, cadence: "once", from: 0, to: null });

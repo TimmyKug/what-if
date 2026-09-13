@@ -64,3 +64,51 @@ There is no install, lint, or build step — no dependencies, no bundler.
   personal use; see "On the MSCI source" in `README.md` before publishing.
 - Prefer a natively denominated series over FX conversion when a source offers
   one — `buildSeries` already picks `byCurrency` ahead of the exchange-rate path.
+
+## Data traps already paid for
+
+Three things worth recording, because each cost real time to find:
+
+- **Prefer accumulating share classes.**
+  Yahoo's dividend adjustment on the
+distributing `VWRL.AS` trails MSCI ACWI by 1.92pp/year at 0.88 correlation, while the accumulating classes of the *same fund* track it at 0.983-0.994.
+The FTSE row uses `VT` for this reason.
+- **Monthly bars are stamped in exchange-local time.**
+  Read as UTC, every
+European listing was labelled one month early and paired with the wrong month's exchange rate.
+- **Use end-of-period exchange rates, not monthly averages.**
+  The prices being
+converted are month-end closes; an average rate injects timing noise worth about 0.12 of correlation.
+
+## On the MSCI series
+
+`app2.msci.com` is the undocumented JSON backend of MSCI's public end-of-day index search.
+It needs no key, and it is also MSCI's copyrighted index data.
+That is fine for a personal tool; it is **not** a basis for a public product, and non-commercial use is not an exemption — in the EU the database right (Directive 96/9/EC, UrhG §§87a-87e) applies regardless of commercial intent.
+
+The Fama/French and Eurostat series are the publishable foundation.
+Eurostat is official EU statistics with clean reuse terms; the Fama/French library is copyright Eugene F.
+Fama and Kenneth R.
+French with no stated licence, so publishing this anywhere public should start with an email to Dartmouth.
+
+**Compare with a fixed rate** draws the line a compound-interest calculator would have given you, dotted, alongside the historical ones.
+At 3% a year the same decade ends at €139,448 against a historical median of €186,213 — and a worst case of €84,582, which is below the €120,000 paid in.
+Seeing the guaranteed line cross through the historical range is the clearest statement of what the trade actually is.
+In real terms the rate is read as a real rate, since a deterministic line has no window whose inflation it could be deflated by.
+
+## Why there is no consent banner
+
+Not because `localStorage` is not a cookie.
+ePrivacy Art. 5(3) covers "storing of information, or gaining access to information already stored, in the terminal equipment of a user", which is technology-neutral and catches `localStorage` exactly as it catches cookies.
+
+The exemption is what the storage is *for*: Art. 5(3) excludes storage strictly necessary to provide a service the user explicitly requested, and a button labelled "Save this one" storing the thing you asked to save is the textbook case.
+WP29 Opinion 04/2012 lists user-input and interface-preference storage among its examples.
+
+So the load-bearing design decision is that **nothing is written before the click**.
+The whole footprint is two keys, `what-if:scenarios` and `what-if:told`, both written only then.
+Storing anything on arrival — a visitor id, a session marker, an analytics call — would move this out of the exemption and require a banner.
+Adding analytics of any kind is the line to watch.
+
+Two tabs is a real comparison, with one caveat worth knowing: each chart scales its own axis, so the same line height means different money in each.
+For the two legs of the use case below the axes differ by 1.21x.
+The ending value is printed on every line, so read the numbers rather than the heights.

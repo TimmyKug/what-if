@@ -763,3 +763,64 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 }
 
 .save-cancel:hover { color: var(--ink); }
+
+/* ---------- why this exists ---------- */
+
+.topbar { justify-content: space-between; }
+
+.about-open {
+  padding: 0.25rem 0.65rem;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.about-open:hover { color: var(--accent); border-color: var(--accent); }
+
+.about {
+  max-width: 30rem;
+  padding: 1.8rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+.about::backdrop { background: rgb(0 0 0 / 0.6); }
+.about h2 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
+.about p { margin: 0 0 0.9rem; color: var(--ink-2); font-size: 0.82rem; line-height: 1.65; }
+
+.about-close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.9rem;
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.about-close:hover { color: var(--ink); }
+
+.coffee {
+  display: inline-block;
+  margin: 0.4rem 0 1.2rem;
+  padding: 0.5rem 0.9rem;
+  background: rgb(52 229 161 / 0.14);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.coffee:hover { background: rgb(52 229 161 / 0.24); }
+
+.about-foot { margin: 0 !important; font-size: 0.7rem !important; color: var(--ink-3) !important; }
