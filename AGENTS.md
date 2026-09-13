@@ -30,6 +30,30 @@ The app needs no API key and makes no network calls at runtime.
 
 There is no install, lint, or build step — no dependencies, no bundler.
 
+## Running it
+
+A static page.
+No build step, no dependencies, no bundler.
+
+```sh
+python3 -m http.server 8000   # ES modules need http://, not file://
+node scripts/check-engine.mjs # 89 assertions over the engine and the data
+```
+
+| Path | What it is |
+|---|---|
+| `engine.js` | calendar, currency conversion and the backtest — no DOM |
+| `app.js` | data loading, the SVG chart, the controls |
+| `data/market-data.json` | committed history, ~350 KB |
+| `scripts/` | fetch, verify, engine checks |
+| `.github/workflows/` | weekly data refresh, Pages deploy |
+
+The refresh workflow stages a fetch, verifies it against the committed copy, and only promotes if it passes — a gate that has caught five real bugs, all of which produced plausible-looking wrong numbers.
+
+> Educational backtest of historical data.
+> Not financial advice, not a forecast.
+> Figures are before tax and trading fees.
+
 ## Conventions
 
 - Keep financial logic in `engine.js` and cover new behavior in
