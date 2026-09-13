@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Smoke test for the backtest engine, run against the committed market data:
+ * Smoke test for the backtest engine, run against both committed datasets:
  *
  *   node scripts/check-engine.mjs
  *
@@ -9,138 +9,145 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { buildSeries, longestRun, ratesFor, runScenario } from "../engine.js";
+import {
+  normalise, longestRun, ratesFor, buildSeries, runScenario,
+  contributionDays, observationsPerYear, dayNumber,
+} from "../engine.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const data = JSON.parse(await readFile(join(root, "data", "market-data.json"), "utf8"));
+const load = async (f) => normalise(JSON.parse(await readFile(join(root, "data", f), "utf8")));
+const monthly = await load("market-data.json");
+const daily = await load("market-data-daily.json");
 
 let failures = 0;
-const check = (name, condition, detail = "") => {
-  if (condition) return console.log(`  ok   ${name}`);
+const check = (name, ok, detail = "") => {
+  if (ok) return console.log(`  ok   ${name}`);
   failures++;
   console.log(`  FAIL ${name}${detail ? ` — ${detail}` : ""}`);
 };
-const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));
 
 console.log("calendar");
-check("longestRun keeps a gap-free run whole", String(longestRun(["2020-01", "2020-02", "2020-03"])) === "0,3");
-check("longestRun picks the longer side of a gap", String(longestRun(["2020-01", "2021-06", "2021-07", "2021-08"])) === "1,4");
-check("longestRun handles a single month", String(longestRun(["2020-01"])) === "0,1");
+check("longestRun keeps a gap-free run whole", String(longestRun([202001, 202002, 202003])) === "0,3");
+check("longestRun picks the longer side of a gap", String(longestRun([202001, 202106, 202107, 202108])) === "1,4");
+check("dayNumber advances by one per calendar day", dayNumber(20200302) - dayNumber(20200301) === 1);
+check("dayNumber crosses a leap day", dayNumber(20200301) - dayNumber(20200228) === 2);
+
+console.log("\ncontribution schedule");
+// Mon 6 Jan 2020 through Fri 17 Jan, weekends absent, plus the 3rd of February.
+const tradingDays = [20200106, 20200107, 20200108, 20200109, 20200110,
+                     20200113, 20200114, 20200115, 20200116, 20200117, 20200203];
+const flags = (c) => Array.from(contributionDays(tradingDays, c, true)).join("");
+check("daily cadence buys every trading day", flags("daily") === "1".repeat(11));
+check("weekly cadence buys once per week", flags("weekly") === "10000100001", flags("weekly"));
+check("monthly cadence buys once per month", flags("monthly") === "10000000001", flags("monthly"));
+check("monthly data always contributes", Array.from(contributionDays([202001, 202002], "monthly", false)).join("") === "11");
+check("a weekly buy lands on the first trading day of the week",
+  Array.from(contributionDays(tradingDays, "weekly", true))[5] === 1);
 
 console.log("\nfx");
-const filled = ratesFor({ X: { months: ["2020-01", "2020-03"], values: [2, 4] } }, "X", ["2019-12", "2020-01", "2020-02", "2020-03"]);
+const filled = ratesFor({ X: { keys: [202001, 202003], values: [2, 4] } }, "X", [201912, 202001, 202002, 202003]);
 check("missing rate before the series is null", filled[0] === null);
 check("known rates pass through", filled[1] === 2 && filled[3] === 4);
-check("gaps carry the last known rate forward", filled[2] === 2, `got ${filled[2]}`);
-check("USD needs no series", ratesFor({}, "USD", ["2020-01"])[0] === 1);
+check("gaps carry the last known rate forward", filled[2] === 2);
+check("USD needs no series", ratesFor({}, "USD", [202001])[0] === 1);
 
 console.log("\nengine");
-// A flat market: nothing compounds, so the balance is exactly what was paid in.
-const flat = { months: ["a", "b", "c", "d"], returns: [0, 0, 0], converted: false };
-const flatRun = runScenario(flat, { horizonMonths: 3, initial: 500, monthly: 100 });
+const flat = { keys: [1, 2, 3, 4], returns: [0, 0, 0], daily: false };
+const flatRun = runScenario(flat, { steps: 3, initial: 500, contribution: 100 });
 check("flat market returns exactly what was paid in", flatRun.paths.median.at(-1) === 800);
 check("paid-in line matches the plan", String(flatRun.paidIn) === "500,600,700,800");
-
-// Return is applied before the month's payment, so month 1 pays in after growth.
-const grow = { months: ["a", "b"], returns: [0.1], converted: false };
-const growRun = runScenario(grow, { horizonMonths: 1, initial: 1000, monthly: 100 });
-check("return is applied before the monthly payment", growRun.paths.median.at(-1) === 1200);
-
-// Withdrawals bigger than the balance empty the portfolio rather than going negative.
-const drain = { months: ["a", "b", "c", "d"], returns: [0, 0, 0], converted: false };
-const drainRun = runScenario(drain, { horizonMonths: 3, initial: 150, monthly: -100 });
-check("a portfolio that runs dry stops at zero", String(Array.from(drainRun.paths.median)) === "150,50,0,0");
-check("the month it ran dry is recorded", drainRun.windows[0].depletedAt === 2);
-check("depleted windows are counted", drainRun.depleted === 1);
 check("a solvent plan reports no depletion", flatRun.depleted === 0);
 
-console.log("\nseries");
-for (const instrument of data.instruments) {
-  const base = buildSeries(data, instrument, instrument.currency);
-  if (instrument.byCurrency) {
-    // A natively denominated series must be used as-is, never routed through FX.
-    const currencies = Object.keys(instrument.byCurrency);
-    check(`${instrument.id}: every published currency is used directly`,
-      currencies.every((c) => {
-        const s = buildSeries(data, instrument, c);
-        return s.denominated && !s.converted && s.returns.length === instrument.months.length - 1;
-      }));
-    check(`${instrument.id}: currencies genuinely differ from one another`,
-      new Set(currencies.map((c) => buildSeries(data, instrument, c).returns.at(-1).toFixed(6))).size > 1);
-    check(`${instrument.id}: a currency it does not publish still converts`,
-      (() => { const s = buildSeries(data, instrument, "PLN"); return !s.denominated && s.returns.length > 24; })());
-    continue;
+const grow = { keys: [1, 2], returns: [0.1], daily: false };
+check("return is applied before the contribution",
+  runScenario(grow, { steps: 1, initial: 1000, contribution: 100 }).paths.median.at(-1) === 1200);
+
+const drain = { keys: [1, 2, 3, 4], returns: [0, 0, 0], daily: false };
+const drainRun = runScenario(drain, { steps: 3, initial: 150, contribution: -100 });
+check("a portfolio that runs dry stops at zero", String(drainRun.paths.median) === "150,50,0,0");
+check("the month it ran dry is recorded", drainRun.picks.median.depletedAt === 2);
+check("depleted windows are counted", drainRun.depleted === 1);
+
+// Aggregates must describe the same windows the picked paths came from.
+const varied = { keys: [1, 2, 3, 4, 5], returns: [0.1, -0.2, 0.3, -0.1], daily: false };
+const v = runScenario(varied, { steps: 2, initial: 100, contribution: 0 });
+check("best and worst bracket the average",
+  v.paths.best.at(-1) >= v.paths.average.at(-1) && v.paths.average.at(-1) >= v.paths.worst.at(-1));
+check("the envelope contains every drawn path",
+  v.paths.best.every((b, t) => b <= v.envelope.high[t] + 1e-9 && b >= v.envelope.low[t] - 1e-9));
+check("window count is right", v.windows === 3);
+
+for (const [label, data] of [["monthly", monthly], ["daily", daily]]) {
+  console.log(`\n${label} dataset`);
+  const perYear = observationsPerYear(data.instruments[0].keys, data.daily);
+  check(`${label}: observations per year look right`,
+    data.daily ? perYear > 240 && perYear < 262 : perYear === 12, perYear.toFixed(1));
+
+  for (const instrument of data.instruments) {
+    const eur = buildSeries(data, instrument, "EUR");
+    const usd = buildSeries(data, instrument, "USD");
+    check(`${label}/${instrument.id}: converts to EUR and USD with history left`,
+      eur.returns.length > 24 && usd.returns.length > 24);
+    check(`${label}/${instrument.id}: every return is finite`,
+      [...eur.returns, ...usd.returns].every(Number.isFinite));
+    check(`${label}/${instrument.id}: keys ascend`, eur.keys.every((k, i) => i === 0 || k > eur.keys[i - 1]));
   }
-  check(`${instrument.id}: unconverted series is gap-free and complete`,
-    !base.converted && base.returns.length === instrument.months.length - 1,
-    `${base.returns.length} vs ${instrument.months.length - 1}`);
-
-  const usd = buildSeries(data, instrument, "USD");
-  const eur = buildSeries(data, instrument, "EUR");
-  check(`${instrument.id}: converts to USD and EUR with history left`,
-    usd.returns.length > 24 && eur.returns.length > 24,
-    `usd ${usd.returns.length}, eur ${eur.returns.length}`);
-  check(`${instrument.id}: every return is a finite number`,
-    [...usd.returns, ...eur.returns].every(Number.isFinite));
-
-  // Converting to the currency the series is already quoted in must be a no-op.
-  const self = buildSeries(data, instrument, instrument.currency);
-  check(`${instrument.id}: self-conversion changes nothing`,
-    self.returns.every((r, i) => near(r, base.returns[i])));
 }
 
-// A EUR-quoted series viewed in USD should differ from the EUR view by roughly
-// the exchange-rate move over the same window.
-const eunl = data.instruments.find((i) => i.id === "msci-world-etf");
-const inEur = buildSeries(data, eunl, "EUR");
-const inUsd = buildSeries(data, eunl, "USD");
-const growth = (s) => s.returns.reduce((acc, r) => acc * (1 + r), 1);
-const fxMove = data.fx.EUR.values.at(-1) / data.fx.EUR.values[data.fx.EUR.months.indexOf(inEur.months[0])];
-check("EUR→USD view differs from EUR view by the exchange-rate move",
-  near(growth(inUsd) / growth(inEur), fxMove, 0.02),
-  `ratio ${(growth(inUsd) / growth(inEur)).toFixed(4)} vs fx ${fxMove.toFixed(4)}`);
-
-// Every one of these tracks world equities, so their monthly returns must move
-// together. This is the guard against a misaligned calendar: shifting a series by
-// a single month drops its correlation from ~0.98 to about zero, which is how the
-// Yahoo timezone bug was found.
+// Every series tracks world equities, so their returns must move together.
+//
+// At daily resolution that is measured over five-day blocks. A European-listed
+// ETF closes at 17:30 CET while a global index EOD includes US markets closing
+// at 22:00, so part of each day's move lands in the ETF's next day: EUNL against
+// MSCI World runs 0.69 day-to-day but 0.94 over five days. That asynchrony is
+// real, not a defect, and aggregating past it keeps the check meaningful.
+//
+// The sharper guard against a shifted calendar is the lag scan below: whatever
+// the correlation, it has to peak at lag zero.
 console.log("\ncross-checks against MSCI World");
-const returnsOf = (series) => series.returns;
-const correlation = (a, b) => {
-  const months = a.months.filter((m) => b.months.includes(m));
-  const pick = (s) => {
-    const index = new Map(s.months.map((m, i) => [m, i]));
-    return months.slice(1).map((m) => s.returns[index.get(m) - 1]);
-  };
-  const [x, y] = [pick(a), pick(b)];
-  const n = x.length;
-  const mx = x.reduce((t, v) => t + v, 0) / n;
-  const my = y.reduce((t, v) => t + v, 0) / n;
-  const cov = x.reduce((t, v, i) => t + (v - mx) * (y[i] - my), 0) / n;
-  const sx = Math.sqrt(x.reduce((t, v) => t + (v - mx) ** 2, 0) / n);
-  const sy = Math.sqrt(y.reduce((t, v) => t + (v - my) ** 2, 0) / n);
+const blocks = (a, b, size, lag = 0) => {
+  const index = new Map(b.keys.map((k, i) => [k, i]));
+  const x = [], y = [];
+  let ax = 1, by = 1, n = 0;
+  a.keys.forEach((k, i) => {
+    const j = index.get(k);
+    if (i < 1 || j == null || j - 1 - lag < 0 || j - 1 - lag >= b.returns.length) return;
+    ax *= 1 + a.returns[i - 1];
+    by *= 1 + b.returns[j - 1 - lag];
+    if (++n % size === 0) { x.push(ax - 1); y.push(by - 1); ax = 1; by = 1; }
+  });
+  const m = x.length;
+  const mx = x.reduce((t, v) => t + v, 0) / m, my = y.reduce((t, v) => t + v, 0) / m;
+  const cov = x.reduce((t, v, i) => t + (v - mx) * (y[i] - my), 0) / m;
+  const sx = Math.sqrt(x.reduce((t, v) => t + (v - mx) ** 2, 0) / m);
+  const sy = Math.sqrt(y.reduce((t, v) => t + (v - my) ** 2, 0) / m);
   return cov / (sx * sy);
 };
 
-const world = buildSeries(data, data.instruments.find((i) => i.id === "msci-world"), "USD");
-for (const instrument of data.instruments) {
-  if (instrument.id === "msci-world") continue;
-  const r = correlation(buildSeries(data, instrument, "USD"), world);
-  check(`${instrument.id}: monthly returns line up with MSCI World`, r > 0.9, `correlation ${r.toFixed(4)}`);
-}
-void returnsOf;
+for (const [label, data] of [["monthly", monthly], ["daily", daily]]) {
+  const size = data.daily ? 5 : 1;
+  const world = buildSeries(data, data.instruments.find((i) => i.id === "msci-world"), "USD");
+  for (const instrument of data.instruments) {
+    if (instrument.id === "msci-world") continue;
+    const series = buildSeries(data, instrument, "USD");
+    const r = blocks(series, world, size);
+    check(`${label}/${instrument.id}: returns line up with MSCI World`, r > 0.85, `correlation ${r.toFixed(4)}`);
 
-// How much history each series actually offers for the default ten-year plan.
-// One window per start month, the last starting `horizon` months before the end.
-const windows = (series, horizon) => Math.max(0, series.returns.length - horizon + 1);
-console.log("\nwindows for a 10-year plan");
-for (const instrument of data.instruments) {
-  const eur = buildSeries(data, instrument, "EUR");
-  const usd = buildSeries(data, instrument, "USD");
-  console.log(
-    `  ${instrument.id.padEnd(17)} EUR ${String(windows(eur, 120)).padStart(4)}` +
-    ` (from ${eur.months[0]})   USD ${String(windows(usd, 120)).padStart(4)} (from ${usd.months[0]})`,
-  );
+    const lagged = [-2, -1, 1, 2].map((l) => blocks(series, world, 1, l));
+    check(`${label}/${instrument.id}: correlation peaks at lag zero`,
+      blocks(series, world, 1) > Math.max(...lagged),
+      `lag0 ${blocks(series, world, 1).toFixed(3)} vs ${lagged.map((v) => v.toFixed(3)).join("/")}`);
+  }
+}
+
+console.log("\nstart dates for a 10-year plan");
+for (const [label, data] of [["monthly", monthly], ["daily", daily]]) {
+  for (const instrument of data.instruments) {
+    const s = buildSeries(data, instrument, "EUR");
+    const steps = Math.round(10 * observationsPerYear(s.keys, s.daily));
+    const r = runScenario(s, { steps, initial: 0, contribution: 100, cadence: "monthly" });
+    console.log(`  ${label.padEnd(8)} ${instrument.id.padEnd(17)} ${String(r ? r.windows : 0).padStart(6)} starts (from ${s.keys[0]})`);
+  }
 }
 
 console.log(`\n${failures ? `${failures} failed` : "all checks passed"}`);

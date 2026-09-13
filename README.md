@@ -44,8 +44,9 @@ open http://localhost:8000
 Checks and data refresh:
 
 ```sh
-node scripts/check-engine.mjs      # smoke tests for the backtest engine
-node scripts/fetch-market-data.mjs # re-fetch monthly history into data/market-data.json
+node scripts/check-engine.mjs       # smoke tests for the backtest engine
+node scripts/fetch-market-data.mjs  # monthly history  → data/market-data.json
+node scripts/fetch-daily-data.mjs   # daily history    → data/market-data-daily.json
 ```
 
 Files:
@@ -55,15 +56,42 @@ Files:
 | `index.html`, `styles.css` | markup and the dark theme |
 | `engine.js` | pure calendar, currency-conversion and backtest logic (no DOM) |
 | `app.js` | data loading, the SVG chart, and the controls |
-| `data/market-data.json` | committed monthly history, fetched from Yahoo Finance |
-| `scripts/` | the fetch script and the engine smoke test |
+| `data/market-data.json` | committed monthly history (440 KB) |
+| `data/market-data-daily.json` | committed daily history (2.4 MB, ~810 KB gzipped), lazy-loaded |
+| `scripts/` | the two fetch scripts and the engine smoke test |
+
+## Resolution and cadence
+
+Buying **every month** uses the monthly dataset. Buying **every week** or **every
+trading day** needs daily observations, so the app lazy-loads the daily file the
+first time one is selected — it is only fetched if asked for.
+
+The two datasets are not interchangeable, which is why both are kept:
+
+| | Monthly | Daily |
+|---|---|---|
+| Developed Markets, EUR | 313 starts, from 1990-07 | 4,586 starts, from 1999-01 |
+| Exchange rates | Eurostat, from 1971 | ECB reference rates, from 1999 |
+
+Daily conversion needs daily rates, and the ECB's only start in 1999 — so a
+converted series reaches *further back* at monthly resolution while offering far
+more start dates at daily. A natively denominated series has no such trade-off.
+
+More start dates is not more information: they still overlap the same years, so
+they are no more independent. What daily removes is the artefact that every plan
+has to begin on the first of a month, which makes "worst" a property of the
+market rather than of the calendar.
+
+A contribution at weekly or monthly cadence lands on the **first trading day** of
+each period, so a plan never silently skips a weekend or a holiday.
 
 ## What the first screen does
 
 One graph answers the question, with the plan editable beside it.
 
-Defaults: **MSCI World**, currency guessed from the visitor's time zone (falling
-back to their locale), **0** starting amount, **+100 per month**, over **10 years**.
+Defaults: **Developed Markets**, currency guessed from the visitor's time zone
+(falling back to their locale), **0** starting amount, **+100 per month**, over
+**10 years**.
 
 The engine replays that plan once for every historical start month the series is
 long enough to cover, and the chart draws:

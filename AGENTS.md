@@ -13,15 +13,19 @@
 - `engine.js` — pure logic: calendar helpers, currency conversion, the backtest.
   No DOM, so it is importable from Node.
 - `app.js` — data loading, the SVG chart, and the controls.
-- `data/market-data.json` — committed monthly history. The app needs no API key
-  and makes no network calls at runtime.
-- `scripts/` — data fetch and engine smoke test.
+- `data/market-data.json` — committed monthly history.
+- `data/market-data-daily.json` — committed daily history, lazy-loaded by the app
+  only when a weekly or daily buying cadence is selected.
+- `scripts/` — two fetch scripts and the engine smoke test.
+
+The app needs no API key and makes no network calls at runtime.
 
 ## Commands
 
 - Serve: `python3 -m http.server 8000` (ES modules need `http://`, not `file://`).
-- Test: `node scripts/check-engine.mjs`.
-- Refresh data: `node scripts/fetch-market-data.mjs`.
+- Test: `node scripts/check-engine.mjs` (covers both datasets).
+- Refresh data: `node scripts/fetch-market-data.mjs` and
+  `node scripts/fetch-daily-data.mjs`.
 
 There is no install, lint, or build step — no dependencies, no bundler.
 
@@ -32,6 +36,11 @@ There is no install, lint, or build step — no dependencies, no bundler.
 - Every modeling shortcut must be visible in the "Data and assumptions" panel.
   Price-return series, currency conversion, proxy instruments, thin history, and
   depleted portfolios all warn there already.
+- Both datasets normalise to integer keys (YYYYMM or YYYYMMDD) via `normalise()`
+  before the engine sees them, so engine code never branches on which file it got.
+- `runScenario` is deliberately two-pass: daily resolution reaches tens of
+  thousands of windows, and keeping every balance path would run to hundreds of
+  megabytes. Pass one aggregates, pass two replays only the three drawn paths.
 - Chart series colors are validated against the dark surface for colorblind
   separation; re-validate before changing them, and keep each line direct-labeled
   as well as in the legend.

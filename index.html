@@ -42,12 +42,16 @@
     </div>
 
     <div class="field">
-      <label for="monthly">Every month</label>
+      <label for="monthly">Buy <select id="cadence" class="inline-select">
+        <option value="monthly">every month</option>
+        <option value="weekly">every week</option>
+        <option value="daily">every trading day</option>
+      </select></label>
       <div class="money-input">
         <span class="money-symbol money-symbol--plus" id="monthly-symbol"></span>
         <input id="monthly" type="number" step="10" value="100" inputmode="numeric" />
       </div>
-      <p class="hint">Negative values withdraw instead of paying in.</p>
+      <p class="hint" id="cadence-hint">Negative values withdraw instead of paying in.</p>
     </div>
 
     <div class="field">
@@ -87,14 +91,14 @@
     </details>
 
     <details class="panel disclosure">
-      <summary>Every historical start month</summary>
+      <summary>Distribution of outcomes</summary>
       <div class="disclosure-body">
         <div class="table-scroll">
           <table class="windows" id="windows-table">
             <thead>
               <tr>
+                <th scope="col">Outcome</th>
                 <th scope="col">Started</th>
-                <th scope="col">Ended</th>
                 <th scope="col" class="num">Paid in</th>
                 <th scope="col" class="num">Final value</th>
                 <th scope="col" class="num">Difference</th>
