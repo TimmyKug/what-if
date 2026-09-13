@@ -34,6 +34,10 @@ There is no install, lint, or build step — no dependencies, no bundler.
 
 - Keep financial logic in `engine.js` and cover new behavior in
   `scripts/check-engine.mjs`.
+- A scenario is a list of cash-flow events, flattened to a `schedule` array
+  before it reaches the engine. Resist adding kinds to it: a starting balance is
+  a flow at month 0, a wait is a run of zeroes, and a withdrawal is a negative
+  payment, so new scenarios should need UI rather than engine changes.
 - Never fetch straight over `data/`. Stage it, run `verify-data.mjs` against the
   committed copy, then promote — that comparison is what catches a source
   changing meaning while still returning valid JSON.

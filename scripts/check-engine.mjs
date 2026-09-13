@@ -36,24 +36,29 @@ check("USD needs no series", ratesFor({}, "USD", [202001])[0] === 1);
 
 console.log("\nengine");
 const flat = { keys: [1, 2, 3, 4], returns: [0, 0, 0] };
-const flatRun = runScenario(flat, { steps: 3, initial: 500, contribution: 100 });
+const monthly = (start, per, steps) => [start, ...Array(steps).fill(per)];
+const flatRun = runScenario(flat, { steps: 3, schedule: monthly(500, 100, 3) });
 check("flat market returns exactly what was paid in", flatRun.paths.median.at(-1) === 800);
 check("paid-in line matches the plan", String(flatRun.paidIn) === "500,600,700,800");
 check("a solvent plan reports no depletion", flatRun.depleted === 0);
 
 const grow = { keys: [1, 2], returns: [0.1] };
 check("return is applied before the contribution",
-  runScenario(grow, { steps: 1, initial: 1000, contribution: 100 }).paths.median.at(-1) === 1200);
+  runScenario(grow, { steps: 1, schedule: monthly(1000, 100, 1) }).paths.median.at(-1) === 1200);
 
 const drain = { keys: [1, 2, 3, 4], returns: [0, 0, 0] };
-const drainRun = runScenario(drain, { steps: 3, initial: 150, contribution: -100 });
+const drainRun = runScenario(drain, { steps: 3, schedule: monthly(150, -100, 3) });
 check("a portfolio that runs dry stops at zero", String(drainRun.paths.median) === "150,50,0,0");
+check("a lump sum lands in the month it is scheduled",
+  runScenario(flat, { steps: 3, schedule: [0, 0, 250, 0] }).paths.median.at(-1) === 250);
+check("a wait is just a run of zeroes",
+  String(runScenario(flat, { steps: 3, schedule: [0, 0, 100, 100] }).paths.median) === "0,0,100,200");
 check("the month it ran dry is recorded", drainRun.picks.median.depletedAt === 2);
 check("depleted windows are counted", drainRun.depleted === 1);
 
 // Aggregates must describe the same windows the picked paths came from.
 const varied = { keys: [1, 2, 3, 4, 5], returns: [0.1, -0.2, 0.3, -0.1] };
-const v = runScenario(varied, { steps: 2, initial: 100, contribution: 0 });
+const v = runScenario(varied, { steps: 2, schedule: monthly(100, 0, 2) });
 check("best and worst bracket the average",
   v.paths.best.at(-1) >= v.paths.average.at(-1) && v.paths.average.at(-1) >= v.paths.worst.at(-1));
 check("the envelope contains every drawn path",
@@ -141,7 +146,7 @@ console.log("\nstart dates for a 10-year plan");
   for (const instrument of data.instruments) {
     const s = buildSeries(data, instrument, "EUR");
     const steps = 10 * OBSERVATIONS_PER_YEAR;
-    const r = runScenario(s, { steps, initial: 0, contribution: 100 });
+    const r = runScenario(s, { steps, schedule: monthly(0, 100, steps) });
     console.log(`  ${label.padEnd(8)} ${instrument.id.padEnd(17)} ${String(r ? r.windows : 0).padStart(6)} starts (from ${s.keys[0]})`);
   }
 }

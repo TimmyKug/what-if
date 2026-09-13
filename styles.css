@@ -493,3 +493,64 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   color: var(--ink-3);
 }
 
+
+/* ---------- cash-flow plan ---------- */
+
+.field-label { font-size: 0.6875rem; font-weight: 500; color: var(--ink-2); }
+
+.plan { display: grid; gap: 0.5rem; }
+
+.plan-row {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.6rem 0.6rem 0.5rem;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.plan-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.4rem; align-items: center; }
+
+.plan-row .money-input input { padding-left: 2.4rem; }
+.plan-row select { padding: 0.4rem 1.6rem 0.4rem 0.45rem; background-position: calc(100% - 0.7rem) 50%, calc(100% - 0.45rem) 50%; }
+.plan-row input[type="number"] { padding: 0.4rem 0.45rem; }
+
+/* When and for how long — the row's second line. */
+.plan-when {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+}
+
+.plan-when input { width: 3.4rem; text-align: center; font-variant-numeric: tabular-nums; }
+.plan-when .spacer { margin-left: auto; }
+
+.plan-remove {
+  padding: 0 0.35rem;
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.plan-remove:hover { color: var(--s-worst); }
+
+.plan-note { font-size: 0.6875rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+.add-event {
+  justify-self: start;
+  padding: 0.35rem 0.6rem;
+  background: none;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.add-event:hover { border-color: var(--accent); color: var(--ink); }

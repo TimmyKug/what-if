@@ -299,15 +299,13 @@ svg.addEventListener("pointerleave", hideCursor);
 const ui = {
   instrument: document.getElementById("instrument"),
   currency: document.getElementById("currency"),
-  initial: document.getElementById("initial"),
-  monthly: document.getElementById("monthly"),
+  plan: document.getElementById("plan"),
+  addEvent: document.getElementById("add-event"),
   years: document.getElementById("years"),
   months: document.getElementById("months"),
   horizonHint: document.getElementById("horizon-hint"),
   instrumentHint: document.getElementById("instrument-hint"),
   currencyHint: document.getElementById("currency-hint"),
-  initialSymbol: document.getElementById("initial-symbol"),
-  monthlySymbol: document.getElementById("monthly-symbol"),
   legend: document.getElementById("legend"),
   chartSub: document.getElementById("chart-sub"),
   chartCaption: document.getElementById("chart-caption"),
@@ -320,12 +318,89 @@ const ui = {
 let data;
 let seriesCache = null;
 
+/**
+ * The plan is a list of cash-flow events. Every scenario the README describes is
+ * one of these lists: a wait is simply a stretch nobody pays into, and a
+ * withdrawal is a payment with a minus sign, so neither needs its own concept.
+ *
+ * `from` and `to` are whole months from the start, which is how the README talks
+ * about them ("33 months", "60 payments") and avoids four date fields per row.
+ */
+let plan = [{ id: 1, amount: 100, cadence: "monthly", from: 1, to: null }];
+let nextEventId = 2;
+
+/** Net cash flow per month, which is all the engine needs to know. */
+function buildSchedule(events, steps) {
+  const schedule = new Float64Array(steps + 1);
+  for (const event of events) {
+    const amount = Number(event.amount) || 0;
+    if (!amount) continue;
+    if (event.cadence === "once") {
+      // Month zero is money already there before the first month's return.
+      schedule[Math.min(Math.max(0, event.from), steps)] += amount;
+    } else {
+      const to = Math.min(event.to ?? steps, steps);
+      for (let t = Math.max(1, event.from); t <= to; t++) schedule[t] += amount;
+    }
+  }
+  return schedule;
+}
+
+const monthsLabel = (n) => {
+  const y = Math.floor(n / 12), m = n % 12;
+  return [y ? `${y}y` : "", m ? `${m}m` : ""].filter(Boolean).join(" ") || "start";
+};
+
+function renderPlan(steps) {
+  const symbol = CURRENCIES[ui.currency.value] ?? ui.currency.value;
+  ui.plan.replaceChildren(...plan.map((event) => {
+    const row = document.createElement("div");
+    row.className = "plan-row";
+    const once = event.cadence === "once";
+    const to = Math.min(event.to ?? steps, steps);
+    row.innerHTML =
+      `<div class="plan-top">` +
+        `<div class="money-input">` +
+          `<span class="money-symbol${event.amount >= 0 ? " money-symbol--plus" : ""}">${event.amount < 0 ? "\u2212" : "+"}${symbol}</span>` +
+          `<input type="number" step="10" value="${event.amount}" data-field="amount" inputmode="numeric" aria-label="Amount" />` +
+        `</div>` +
+        `<select data-field="cadence" aria-label="How often">` +
+          `<option value="monthly"${once ? "" : " selected"}>each month</option>` +
+          `<option value="once"${once ? " selected" : ""}>once</option>` +
+        `</select>` +
+      `</div>` +
+      `<div class="plan-when">` +
+        `<span>${once ? "in month" : "from month"}</span>` +
+        `<input type="number" min="${once ? 0 : 1}" value="${event.from}" data-field="from" inputmode="numeric" aria-label="First month" />` +
+        (once ? "" : `<span>to</span><input type="number" min="1" value="${event.to ?? steps}" data-field="to" inputmode="numeric" aria-label="Last month" />`) +
+        `<span class="spacer"></span>` +
+        `<button type="button" class="plan-remove" data-field="remove" aria-label="Remove">\u2715</button>` +
+      `</div>` +
+      `<div class="plan-note">${once
+        ? (event.from === 0 ? "at the start" : `at ${monthsLabel(event.from)}`)
+        : `${monthsLabel(event.from)} to ${monthsLabel(to)} \u00b7 ${Math.max(0, to - event.from + 1)} payments`}</div>`;
+
+    row.addEventListener("input", (e) => {
+      const field = e.target.dataset.field;
+      if (field === "amount") event.amount = Number(e.target.value) || 0;
+      else if (field === "cadence") event.cadence = e.target.value;
+      else if (field === "from") event.from = Math.max(event.cadence === "once" ? 0 : 1, Math.trunc(Number(e.target.value) || 0));
+      else if (field === "to") event.to = Math.max(1, Math.trunc(Number(e.target.value) || 1));
+      render();
+    });
+    row.querySelector('[data-field="remove"]').addEventListener("click", () => {
+      plan = plan.filter((x) => x !== event);
+      if (!plan.length) plan = [{ id: nextEventId++, amount: 0, cadence: "monthly", from: 1, to: null }];
+      render();
+    });
+    return row;
+  }));
+}
+
 function readInputs() {
   return {
     instrumentId: ui.instrument.value,
     currency: ui.currency.value,
-    initial: Math.max(0, Number(ui.initial.value) || 0),
-    contribution: Number(ui.monthly.value) || 0,
     years: Math.max(0, Math.trunc(Number(ui.years.value) || 0)),
     months: Math.max(0, Math.trunc(Number(ui.months.value) || 0)),
   };
@@ -489,7 +564,7 @@ function longerHistory(instrument, input, steps, result) {
 
   const series = buildSeries(data, reference, input.currency);
   const run = runScenario(series, {
-    steps, initial: input.initial, contribution: input.contribution,
+    steps, schedule: buildSchedule(plan, steps),
   });
   if (!run || run.windows <= result.windows) return null;
 
@@ -510,9 +585,6 @@ function longerHistory(instrument, input, steps, result) {
 function render() {
   const input = readInputs();
   setCurrencyFormat(input.currency);
-  ui.initialSymbol.textContent = CURRENCIES[input.currency] ?? input.currency;
-  ui.monthlySymbol.textContent = (input.contribution < 0 ? "−" : "+") + (CURRENCIES[input.currency] ?? input.currency);
-  ui.monthlySymbol.classList.toggle("money-symbol--plus", input.contribution >= 0);
 
   const instrument = data.instruments.find((i) => i.id === input.instrumentId) ?? data.instruments[0];
   ui.instrument.value = instrument.id;
@@ -542,7 +614,8 @@ function render() {
     ? `Only ${durationLabel(horizon)} of history is available, so that is what is shown.`
     : "";
   const years = steps / perYear;
-  const result = runScenario(series, { steps, initial: input.initial, contribution: input.contribution });
+  renderPlan(steps);
+  const result = runScenario(series, { steps, schedule: buildSchedule(plan, steps) });
   if (!result) {
     ui.chartSub.textContent = "Not enough history for this horizon.";
     return;
@@ -573,8 +646,11 @@ async function init() {
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
 
-  for (const control of [ui.instrument, ui.currency, ui.initial, ui.monthly,
-                        ui.years, ui.months]) {
+  ui.addEvent.addEventListener("click", () => {
+    plan.push({ id: nextEventId++, amount: 0, cadence: "once", from: 0, to: null });
+    render();
+  });
+  for (const control of [ui.instrument, ui.currency, ui.years, ui.months]) {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);

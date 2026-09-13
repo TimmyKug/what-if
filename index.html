@@ -32,20 +32,10 @@
     </div>
 
     <div class="field">
-      <label for="initial">Starting amount</label>
-      <div class="money-input">
-        <span class="money-symbol" id="initial-symbol"></span>
-        <input id="initial" type="number" min="0" step="100" value="0" inputmode="numeric" />
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="monthly">Every month</label>
-      <div class="money-input">
-        <span class="money-symbol money-symbol--plus" id="monthly-symbol"></span>
-        <input id="monthly" type="number" step="10" value="100" inputmode="numeric" />
-      </div>
-      <p class="hint">Negative values withdraw instead of paying in.</p>
+      <span class="field-label" id="plan-label">Plan</span>
+      <div id="plan" class="plan" role="group" aria-labelledby="plan-label"></div>
+      <button type="button" id="add-event" class="add-event">Add a payment</button>
+      <p class="hint">Negative amounts withdraw instead of paying in. Months count from the start.</p>
     </div>
 
     <fieldset class="field duration-field">

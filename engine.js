@@ -109,14 +109,20 @@ function buildSeries(data, instrument, currency) {
 /**
  * Replays the plan once per possible start month.
  *
+ * `schedule[t]` is the net cash flow in month `t`, positive in and negative out,
+ * with `schedule[0]` the money present before the first month. Collapsing every
+ * event into one array means the engine needs no other concepts: a starting
+ * balance is a flow at month zero, a wait is a run of zeroes, and a withdrawal is
+ * a payment with a minus sign.
+ *
  * Two passes: the first keeps only the final values and the running aggregates,
  * the second replays the three windows actually drawn. Cheap here, and it keeps
  * memory flat in the number of windows rather than growing with it.
  *
- * Within a month the return is applied first and the contribution second, so a
- * contribution never earns the return of the month it arrives in.
+ * Within a month the return is applied first and the cash flow second, so money
+ * never earns the return of the month it arrives in.
  */
-function runScenario(series, { steps, initial, contribution }) {
+function runScenario(series, { steps, schedule }) {
   const { returns, keys } = series;
   const windows = returns.length - steps + 1;
   if (windows < 1 || steps < 1) return null;
@@ -129,8 +135,8 @@ function runScenario(series, { steps, initial, contribution }) {
   const high = new Float64Array(steps + 1).fill(-Infinity);
 
   for (let s = 0; s < windows; s++) {
-    let balance = initial;
-    let paid = initial;
+    let balance = schedule[0];
+    let paid = schedule[0];
     let depleted = 0;
     sum[0] += balance; paidSum[0] += paid;
     if (balance < low[0]) low[0] = balance;
@@ -139,8 +145,8 @@ function runScenario(series, { steps, initial, contribution }) {
     for (let t = 1; t <= steps; t++) {
       const i = s + t - 1;
       balance *= 1 + returns[i];
-      balance += contribution;
-      paid += contribution;
+      balance += schedule[t];
+      paid += schedule[t];
       if (balance < 0) { balance = 0; depleted = 1; }
       sum[t] += balance; paidSum[t] += paid;
       if (balance < low[t]) low[t] = balance;
@@ -156,13 +162,13 @@ function runScenario(series, { steps, initial, contribution }) {
   const replay = (start) => {
     const path = new Array(steps + 1);
     const paidIn = new Array(steps + 1);
-    let balance = initial, paid = initial, depletedAt = null;
+    let balance = schedule[0], paid = schedule[0], depletedAt = null;
     path[0] = balance; paidIn[0] = paid;
     for (let t = 1; t <= steps; t++) {
       const i = start + t - 1;
       balance *= 1 + returns[i];
-      balance += contribution;
-      paid += contribution;
+      balance += schedule[t];
+      paid += schedule[t];
       if (balance < 0) { balance = 0; depletedAt ??= t; }
       path[t] = balance; paidIn[t] = paid;
     }

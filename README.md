@@ -119,6 +119,52 @@ The horizon is set as years and months rather than a whole number of years, so
 18 months or 3 years 6 months are as easy to ask for as a decade. A horizon
 longer than the available history is capped at it and the control says so.
 
+## The plan
+
+A scenario is a list of cash-flow events, and nothing else. There is no separate
+starting amount, no waiting period and no withdrawal type, because a schedule
+already expresses all three:
+
+| Idea | How it is written |
+|---|---|
+| Starting capital | one payment, in month 0 |
+| Saving monthly | a repeating payment, month 1 to the end |
+| Waiting | months no event covers |
+| A lump sum later | one payment, in that month |
+| Drawing down | a repeating payment with a minus sign |
+
+Each event becomes a number in a `schedule` array — `schedule[t]` is the net flow
+in month `t`, and `schedule[0]` is the money present before the first month. The
+engine reads that array and knows nothing about events, so the whole of the
+scenario above costs it one line:
+
+```js
+balance = balance * (1 + returns[i]) + schedule[t];
+```
+
+Months are counted from the start rather than given as dates, which is how the
+use case below states them ("33 months", "60 payments") and keeps each row to one
+field per boundary instead of four.
+
+### The first use case, expressed
+
+`Invest now` is one event: **+15,000 in month 0**.
+
+`Wait and borrow` is two: **+30,000 in month 33**, then **−110 a month from 34 to
+93**. The wait needs no expressing — it is simply the months before the first
+event, where the money earns nothing, which is what sitting in a Bausparvertrag
+does.
+
+Over Developed Markets in EUR, across all 340 overlapping 93-month windows:
+
+| | Worst | Median | Best | Net paid in |
+|---|---|---|---|---|
+| Invest now | €8,872 | €29,608 | €69,040 | €15,000 |
+| Wait and borrow | €14,073 | €40,690 | €85,298 | €23,400 |
+
+Running the two side by side in one view is a separate piece of work; today they
+are two runs of the same screen.
+
 The engine replays that plan once for every historical start month the series is
 long enough to cover, and the chart draws:
 
