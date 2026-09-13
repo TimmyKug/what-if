@@ -15,7 +15,8 @@ import {
 } from "../engine.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const load = async (f) => normalise(JSON.parse(await readFile(join(root, "data", f), "utf8")));
+const DATA_DIR = process.env.DATA_DIR ?? "data";
+const load = async (f) => normalise(JSON.parse(await readFile(join(root, DATA_DIR, f), "utf8")));
 const monthly = await load("market-data.json");
 const daily = await load("market-data-daily.json");
 

@@ -1,0 +1,78 @@
+name: Refresh market data
+
+on:
+  schedule:
+    # Mondays, 06:00 UTC. The Fama/French files update monthly and the rest
+    # daily, so weekly keeps the site current without hammering the sources.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.promote.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Fetched into a staging directory, never over the committed data. If any
+      # step below fails, the repository still holds the last good dataset.
+      - name: Fetch into staging
+        env:
+          DATA_DIR: data-staging
+        run: |
+          mkdir -p data-staging
+          node scripts/fetch-market-data.mjs
+          node scripts/fetch-daily-data.mjs
+
+      - name: Verify the staged data
+        run: node scripts/verify-data.mjs data-staging data
+
+      - name: Run the engine checks against the staged data
+        env:
+          DATA_DIR: data-staging
+        run: node scripts/check-engine.mjs
+
+      - name: Promote
+        id: promote
+        run: |
+          mv data-staging/market-data.json data/market-data.json
+          mv data-staging/market-data-daily.json data/market-data-daily.json
+          rmdir data-staging
+          if git diff --quiet -- data; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No change since the last refresh."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- data
+          fi
+
+      - name: Re-run the checks against the promoted data
+        if: steps.promote.outputs.changed == 'true'
+        run: node scripts/check-engine.mjs
+
+      - name: Commit
+        if: steps.promote.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "Refresh market data
+
+          Fetched and verified by .github/workflows/refresh-data.yml."
+          git push
+
+  deploy:
+    needs: refresh
+    if: needs.refresh.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy-pages.yml

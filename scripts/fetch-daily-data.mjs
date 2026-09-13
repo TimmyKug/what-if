@@ -14,7 +14,9 @@ import { inflateRawSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "data", "market-data-daily.json");
+/** Where to read and write data. Overridable so a refresh can be staged. */
+const DATA_DIR = process.env.DATA_DIR ?? "data";
+const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", DATA_DIR, "market-data-daily.json");
 // Six significant figures is exact enough for an index level or a share price;
 // the resulting return is accurate to about 1e-6, and it keeps the payload small.
 const round = (v) => Number(v.toPrecision(6));

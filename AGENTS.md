@@ -25,7 +25,10 @@ The app needs no API key and makes no network calls at runtime.
 - Serve: `python3 -m http.server 8000` (ES modules need `http://`, not `file://`).
 - Test: `node scripts/check-engine.mjs` (covers both datasets).
 - Refresh data: `node scripts/fetch-market-data.mjs` and
-  `node scripts/fetch-daily-data.mjs`.
+  `node scripts/fetch-daily-data.mjs`. Set `DATA_DIR` to write elsewhere.
+- Verify a fetched dataset: `node scripts/verify-data.mjs <dir> [baseline-dir]`.
+- CI: `.github/workflows/refresh-data.yml` (weekly, staged + verified) and
+  `.github/workflows/deploy-pages.yml` (Pages).
 
 There is no install, lint, or build step — no dependencies, no bundler.
 
@@ -33,6 +36,9 @@ There is no install, lint, or build step — no dependencies, no bundler.
 
 - Keep financial logic in `engine.js` and cover new behavior in
   `scripts/check-engine.mjs`.
+- Never fetch straight over `data/`. Stage it, run `verify-data.mjs` against the
+  committed copy, then promote — that comparison is what catches a source
+  changing meaning while still returning valid JSON.
 - Every modeling shortcut must be visible in the "Data and assumptions" panel.
   Price-return series, currency conversion, proxy instruments, thin history, and
   depleted portfolios all warn there already.

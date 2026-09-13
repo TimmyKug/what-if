@@ -47,7 +47,56 @@ Checks and data refresh:
 node scripts/check-engine.mjs       # smoke tests for the backtest engine
 node scripts/fetch-market-data.mjs  # monthly history  → data/market-data.json
 node scripts/fetch-daily-data.mjs   # daily history    → data/market-data-daily.json
+node scripts/verify-data.mjs <dir>  # integrity-check a fetched dataset
 ```
+
+`DATA_DIR` redirects the fetchers and the checker, so a refresh can be staged
+somewhere else and inspected before it replaces anything:
+
+```sh
+DATA_DIR=data-staging node scripts/fetch-market-data.mjs
+node scripts/verify-data.mjs data-staging data
+```
+
+## Automated refresh and deployment
+
+`.github/workflows/refresh-data.yml` runs weekly (Mondays 06:00 UTC) and on
+demand. It never writes over the committed data directly:
+
+1. fetch both datasets into `data-staging/`
+2. `verify-data.mjs` checks them, and compares them against what is committed
+3. `check-engine.mjs` runs against the staged copy
+4. only then are the files promoted, re-checked, committed, and deployed
+
+If any step fails the job stops and the repository still holds the last good
+dataset.
+
+The comparison in step 2 is the part worth having. Structural checks catch a
+malformed or truncated download; comparing against the previous vintage catches
+the subtler failure, where a source still returns well-formed JSON but has
+quietly changed what it means. Every return on a shared date must still agree:
+
+| Check | Fails when |
+|---|---|
+| History length | a series came back shorter than before |
+| Value sanity | a non-finite or non-positive price |
+| Implausible move | a single period moves more than 60% |
+| Revision drift | more than 5% of shared returns move by over 0.01pp |
+| Series break | any single shared return moves by over 2pp |
+
+The last one is the calendar guard: a one-period shift moves returns by whole
+percentage points, so it cannot hide as a revision. Tolerances exist because
+prices are stored to six significant figures and providers re-adjust history for
+splits and dividends, so a re-fetch never reproduces the previous numbers
+exactly.
+
+`.github/workflows/deploy-pages.yml` publishes the static files and `data/` to
+GitHub Pages on every push to `main`, and is called directly by the refresh
+workflow — a commit pushed with `GITHUB_TOKEN` does not trigger `push` workflows,
+so the refresh has to deploy itself.
+
+To enable it: **Settings → Pages → Source: GitHub Actions**. The repository must
+be public, or on a plan that allows Pages from private repositories.
 
 Files:
 

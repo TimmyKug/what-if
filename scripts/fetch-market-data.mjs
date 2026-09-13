@@ -13,7 +13,9 @@ import { inflateRawSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "data", "market-data.json");
+/** Where to read and write data. Overridable so a refresh can be staged. */
+const DATA_DIR = process.env.DATA_DIR ?? "data";
+const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", DATA_DIR, "market-data.json");
 
 /**
  * `adjusted: true` means the series is dividend-adjusted, i.e. a real
