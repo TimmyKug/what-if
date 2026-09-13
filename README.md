@@ -116,9 +116,9 @@ Each series carries its own currency and whether it is dividend-adjusted:
 
 | Series | Returns | History from | 10-year windows (EUR) |
 |---|---|---|---|
-| Developed Markets | total return, gross of tax | 1990-07 | **313** |
+| **Developed Markets** (default) | total return, gross of tax | 1990-07 | **313** |
 | US Market (1926) | total return, gross of tax | 1926-07 | 547 (1081 in USD) |
-| **MSCI World (net return)** (default) | net total return | 2000-12 | 189 |
+| MSCI World (net return) | net total return | 2000-12 | 189 |
 | MSCI World (price only) | price return only | 1985-01 | 381 |
 | S&P 500 Total Return | total return | 1988-01 | 345 |
 | US Total Market (VTSMX) | total return | 1992-04 | 294 |
@@ -150,19 +150,22 @@ United States only
     US Market (1926) · from 1926
 ```
 
-**MSCI World (net return) is the default**, because it is the index most people
-actually hold — IWDA, EUNL and SWDA all track it — and `NETR` is net of dividend
-withholding tax, so it is what a tracker really delivers.
+**Developed Markets is the default**, because history matters more here than a
+familiar name. The worst ten-year run of the same plan is **−30%** on Developed
+Markets but **+2%** on MSCI World, entirely because MSCI's free data starts in
+December 2000, after the dot-com peak — a calculator whose headline downside is
+"roughly break-even" is not doing its job.
 
-That choice costs history, and the cost is not subtle. The worst ten-year run of
-the same plan is **+2%** on MSCI World but **−30%** on Developed Markets, entirely
-because MSCI's free data starts in December 2000, after the dot-com peak. So when
-a longer comparable series exists, the assumptions panel now names it and states
-its worst outcome. Defaulting to the familiar series is fine; letting it quietly
-understate the downside is not.
+MSCI World is one click away for anyone who wants the index their tracker
+actually follows, and whenever a longer comparable series exists the assumptions
+panel names it and states its worst outcome, so the shorter history can never
+quietly understate the downside.
 
-For the same reason FTSE Global All Cap is a poor default despite being just as
-widely held: starting in 2008, its worst ten-year run is **+42%**.
+The same reasoning rules out FTSE Global All Cap, which is just as widely held
+but starts in 2008 and puts the worst ten-year run at **+42%**.
+
+Each option in the dropdown carries the full span it covers (`1990–2026`), so the
+trade-off between the series in a group is visible before you pick one.
 
 **Developed Markets** is the Fama/French developed-market portfolio:
 every listed company in the developed world weighted by market cap, built from the

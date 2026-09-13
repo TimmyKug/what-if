@@ -332,6 +332,9 @@ function readInputs() {
   };
 }
 
+const yearOf = (key) => String(key).slice(0, 4);
+const span = (instrument) => `${yearOf(instrument.keys[0])}\u2013${yearOf(instrument.keys.at(-1))}`;
+
 /** Rebuilt per dataset, since daily and monthly series start in different years. */
 function renderInstrumentOptions(data) {
   const byId = new Map(data.instruments.map((i) => [i.id, i]));
@@ -344,9 +347,8 @@ function renderInstrumentOptions(data) {
       const instrument = byId.get(id);
       if (!instrument) continue;
       seen.add(id);
-      const year = String(instrument.keys[0]).slice(0, 4);
       group.append(Object.assign(document.createElement("option"), {
-        value: id, textContent: `${instrument.name} · ${year}`,
+        value: id, textContent: `${instrument.name} · ${span(instrument)}`,
       }));
     }
     return group;
@@ -358,7 +360,7 @@ function renderInstrumentOptions(data) {
     const group = document.createElement("optgroup");
     group.label = "Other";
     group.append(...rest.map((i) => Object.assign(document.createElement("option"), {
-      value: i.id, textContent: `${i.name} · ${String(i.keys[0]).slice(0, 4)}`,
+      value: i.id, textContent: `${i.name} · ${span(i)}`,
     })));
     groups.push(group);
   }
@@ -594,7 +596,7 @@ async function init() {
   data = await dataset("monthly");
 
   renderInstrumentOptions(data);
-  ui.instrument.value = "msci-world";
+  ui.instrument.value = "ff-developed";
 
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
