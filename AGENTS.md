@@ -66,6 +66,10 @@ The refresh workflow stages a fetch, verifies it against the committed copy, and
   what keeps the site outside ePrivacy Art. 5(3) consent and free of a banner —
   see "Why there is no consent banner" in `README.md`. Analytics of any kind
   would cross that line.
+- Figures quoted in `README.md` and `docs/data.md` are snapshots, dated in the
+  text, not generated. The weekly refresh moves them. Re-date rather than
+  silently correcting, or leave them approximate — the point they illustrate is
+  the spread between best and worst, which does not move.
 - Never fetch straight over `data/`. Stage it, run `verify-data.mjs` against the
   committed copy, then promote — that comparison is what catches a source
   changing meaning while still returning valid JSON.

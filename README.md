@@ -5,7 +5,7 @@ You describe a plan — pay in this much, from then until then, take some out he
 Not one run.
 Every run.
 
-€1,000 a month into developed-market equities for ten years, across all 313 ten-year stretches since 1990:
+€1,000 a month into developed-market equities for ten years, across all 313 ten-year stretches since 1990 — as the data stood in September 2026:
 
 | | Result | vs the €120,000 paid in |
 |---|---|---|
@@ -15,6 +15,7 @@ Every run.
 
 Same plan, same index, same decade.
 The gap between those rows is the only thing this tool is really for.
+(The figures move as the data refreshes each week; the gap does not.)
 
 ## Why it exists
 
@@ -43,7 +44,7 @@ Then describe the plan.
 - **Simple mode** — a starting amount and a monthly figure.
 - **Pro mode** — a list of cash-flow events, which can express waiting before you start, a lump sum partway through, drawing an income back out, or all three.
 - **Show in today's money** — deflates every figure to the purchasing power of the month its own window began.
-  The same decade that ends at €346,205 nominally ends at €216,810 in real terms.
+  The same decade that ends near €346,000 nominally ends near €217,000 in real terms.
 - **Compare with a fixed rate** — draws the line a compound-interest calculator would have given you, through the historical range.
 
 Thirteen series to choose from, in eight currencies, going back as far as 1926.
@@ -55,7 +56,7 @@ Two things it says on screen rather than hiding:
 
 - A series that begins after a crash will flatter a plan, so wherever a longer comparable one exists, the app names it and states its worst outcome.
 - Overlapping windows are not independent samples.
-  313 ten-year windows drawn from 36 years are 313 views of the same 36 years.
+  Three hundred-odd ten-year windows drawn from 36 years are that many views of the same 36 years.
 
 ## More
 

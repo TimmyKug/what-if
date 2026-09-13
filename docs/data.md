@@ -1,5 +1,7 @@
 # Data
 
+Start dates below are as the data stood in September 2026; they grow by one a month.
+
 Everything is committed to this repository, so the app makes **no network calls at runtime and needs no API key**.
 
 | Series | Source | From | 10-year start dates |
@@ -22,6 +24,6 @@ Two things the app says on screen rather than hiding:
   The same plan's worst decade is −30% on it but **+2%** on MSCI World, purely because MSCI's free data begins after the dot-com peak.
   Whenever a longer comparable series exists, the assumptions panel names it and states its worst outcome.
 - **Overlapping windows are not independent samples.**
-  313 ten-year windows drawn from 36 years are 313 views of the same 36 years.
+  Three hundred-odd ten-year windows drawn from 36 years are that many views of the same 36 years.
 
 `AGENTS.md` has the engineering notes: the data traps already paid for, the MSCI licensing position, and why there is no consent banner.
