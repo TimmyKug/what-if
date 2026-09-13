@@ -136,6 +136,20 @@ At 3% a year the same decade ends at €139,448 against a historical median of �
 Seeing the guaranteed line cross through the historical range is the clearest statement of what the trade actually is.
 In real terms the rate is read as a real rate, since a deterministic line has no window whose inflation it could be deflated by.
 
+## Sharing and comparing
+
+The whole scenario lives in the query string, so a link is the unit of sharing, a bookmark is the unit of saving, and a second tab is the unit of comparison.
+
+```
+?i=msci-world&c=GBP&y=7&m=9&r=1&f=2.5&pro=1&p=o:30000:33,m:-110:34:93
+```
+
+Events encode as `cadence:amount:from[:to]` — `m:1000:1` is a thousand a month from month one, `o:30000:33` a lump at month 33.
+
+Two tabs is a real comparison, with one caveat worth knowing: each chart scales its own axis, so the same line height means different money in each.
+For the two legs of the use case below the axes differ by 1.21x.
+The ending value is printed on every line, so read the numbers rather than the heights.
+
 ## How it works
 
 Monthly observations.

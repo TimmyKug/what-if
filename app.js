@@ -361,6 +361,76 @@ let nextEventId = 2;
 let proMode = false;
 let lastInstrumentId = null;
 
+/* ------------------------------------------------------------ shareable url */
+
+/**
+ * The whole scenario lives in the query string, which makes a link the unit of
+ * sharing, a bookmark the unit of saving, and a second tab the unit of
+ * comparison — none of which need storage or a notice.
+ *
+ * Events encode as cadence:amount:from[:to] — `m:1000:1` is a thousand a month
+ * from month one, `o:30000:33` a lump at month 33.
+ */
+function encodeState(input) {
+  const params = new URLSearchParams();
+  params.set("i", input.instrumentId);
+  params.set("c", input.currency);
+  params.set("y", input.years);
+  params.set("m", input.months);
+  if (input.real) params.set("r", "1");
+  if (input.fixed !== null) params.set("f", input.fixed);
+  if (proMode) params.set("pro", "1");
+  params.set("p", plan.map((e) =>
+    [e.cadence === "once" ? "o" : "m", e.amount, e.from, ...(e.cadence === "once" || e.to == null ? [] : [e.to])]
+      .join(":")).join(","));
+  return params.toString();
+}
+
+/** Applies a query string to the controls. Anything malformed is ignored. */
+function applyState(search) {
+  const params = new URLSearchParams(search);
+  if (![...params.keys()].length) return false;
+
+  const set = (control, key, fallback) => {
+    const value = params.get(key);
+    if (value !== null && value !== "") control.value = value;
+    else if (fallback !== undefined) control.value = fallback;
+  };
+  set(ui.currency, "c");
+  set(ui.years, "y");
+  set(ui.months, "m");
+  ui.realTerms.checked = params.get("r") === "1";
+  ui.fixedOn.checked = params.has("f");
+  if (params.has("f")) ui.fixedRate.value = params.get("f");
+
+  const raw = params.get("p");
+  if (raw) {
+    const events = raw.split(",").map((part) => {
+      const [cadence, amount, from, to] = part.split(":");
+      if (!["m", "o"].includes(cadence)) return null;
+      const event = {
+        id: nextEventId++,
+        amount: Number(amount) || 0,
+        cadence: cadence === "o" ? "once" : "monthly",
+        from: Math.max(0, Math.trunc(Number(from) || 0)),
+        to: to === undefined || to === "" ? null : Math.trunc(Number(to)),
+      };
+      return Number.isFinite(event.amount) ? event : null;
+    }).filter(Boolean);
+    if (events.length) plan = events;
+  }
+
+  const instrument = params.get("i");
+  if (instrument) lastInstrumentId = instrument; // do not re-clamp the horizon
+  return { instrument, pro: params.get("pro") === "1" };
+}
+
+/** replaceState, so typing a number does not fill the back button with history. */
+function syncUrl(input) {
+  const next = `${location.pathname}?${encodeState(input)}`;
+  if (next !== location.pathname + location.search) history.replaceState(null, "", next);
+}
+
 /**
  * The same plan at a guaranteed rate — what a compound-interest calculator would
  * have told you. In real terms the entered figure is read as a real rate, since
@@ -787,6 +857,7 @@ function render() {
   ui.windowsNote.textContent =
     `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0])}.`;
 
+  syncUrl(input);
   drawChart(result, years);
   renderTable(result);
   renderAssumptions(series, result, { ...input, instrument, horizon, longer: longerHistory(instrument, input, steps, result) });
@@ -797,10 +868,15 @@ async function init() {
 
   renderInstrumentOptions(data);
   ui.instrument.value = "ff-developed";
-
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
+
+  // After the options exist, or a restored currency would have nowhere to land.
+  const restored = applyState(location.search);
+  if (restored?.instrument && data.instruments.some((i) => i.id === restored.instrument)) {
+    ui.instrument.value = restored.instrument;
+  }
 
   for (const control of [ui.initial, ui.monthly]) {
     control.addEventListener("input", () => { setSimplePlan(); render(); });
@@ -824,7 +900,8 @@ async function init() {
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);
   // Sync the DOM with the starting mode rather than trusting the markup to match.
-  setMode(proMode);
+  // A restored plan may not fit the simple fields, so pro mode wins if asked for.
+  setMode(restored?.pro === true || (restored && !isSimplePlan()));
 }
 
 init();
