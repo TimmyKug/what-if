@@ -31,6 +31,74 @@ Invest €15,000 immediately and hold it for the same 93-month horizon. This sce
 
 The first version compares the investment account balance at the horizon. A later version can add a household-net-worth view that includes loan principal, interest, taxes, fees, and the value of the Bauspar position separately.
 
+## Running it
+
+The app is a static page with no build step and no runtime API key — the market
+history is committed in `data/market-data.json`.
+
+```sh
+python3 -m http.server 8000   # any static server; ES modules need http://, not file://
+open http://localhost:8000
+```
+
+Checks and data refresh:
+
+```sh
+node scripts/check-engine.mjs      # smoke tests for the backtest engine
+node scripts/fetch-market-data.mjs # re-fetch monthly history into data/market-data.json
+```
+
+Files:
+
+| Path | What it is |
+|---|---|
+| `index.html`, `styles.css` | markup and the dark theme |
+| `engine.js` | pure calendar, currency-conversion and backtest logic (no DOM) |
+| `app.js` | data loading, the SVG chart, and the controls |
+| `data/market-data.json` | committed monthly history, fetched from Yahoo Finance |
+| `scripts/` | the fetch script and the engine smoke test |
+
+## What the first screen does
+
+One graph answers the question, with the plan editable beside it.
+
+Defaults: **MSCI World**, currency guessed from the visitor's time zone (falling
+back to their locale), **0** starting amount, **+100 per month**, over **10 years**.
+
+The engine replays that plan once for every historical start month the series is
+long enough to cover, and the chart draws:
+
+- **Best**, **Median** and **Worst** — three single, real timelines: the start
+  months whose plan ended highest, in the middle, and lowest.
+- **Average** — the mean across every timeline, month by month.
+- **Paid in** — a dashed baseline of the money actually put in.
+- A shaded envelope covering everywhere any timeline ever went.
+
+Best, median and worst are deliberately actual historical sequences rather than
+per-month percentiles, so each line is a path someone could really have lived
+through. Overlapping windows are not independent samples, and the UI says so
+whenever the series is short relative to the horizon.
+
+Withdrawals that the portfolio cannot cover empty it instead of taking it
+negative, and the number of timelines where that happened is reported.
+
+## Instruments and currency
+
+Each series carries its own currency and whether it is dividend-adjusted:
+
+| Series | Currency | Returns | History from |
+|---|---|---|---|
+| MSCI World (EUNL, Xetra, accumulating) | EUR | total return | 2009 |
+| MSCI World Index | USD | price return only | 1985 |
+| MSCI ACWI (ACWI) | USD | total return | 2008 |
+| S&P 500 Total Return | USD | total return | 1988 |
+| US Total Market (VTSMX) | USD | total return | 1992 |
+
+Picking a different display currency converts the series month by month at the
+historical exchange rate, so the result includes currency movement. Usable
+history is then the overlap of the price series and the exchange-rate series,
+and gaps in the monthly FX data carry the last known rate forward.
+
 ## Historical calculation model
 
 Use monthly observations for the first version. A monthly model is easier to explain, matches the €110 repayment cadence, and avoids false precision from daily noise.

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What if? — historical investment outcomes</title>
+<meta name="description" content="Replay a saving plan against decades of real market history and see the average, median, best and worst timeline it would have produced." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">What if?</span>
+  </div>
+  <p class="tagline">Replay a saving plan against real market history.</p>
+  <div class="data-status" id="data-status" aria-live="polite"></div>
+</header>
+
+<main class="workspace">
+  <aside class="rail" aria-label="Scenario">
+    <h2 class="rail-title">Scenario</h2>
+
+    <div class="field">
+      <label for="instrument">Invested in</label>
+      <select id="instrument"></select>
+      <p class="hint" id="instrument-hint"></p>
+    </div>
+
+    <div class="field">
+      <label for="currency">Currency</label>
+      <select id="currency"></select>
+      <p class="hint" id="currency-hint"></p>
+    </div>
+
+    <div class="field">
+      <label for="initial">Starting amount</label>
+      <div class="money-input">
+        <span class="money-symbol" id="initial-symbol"></span>
+        <input id="initial" type="number" min="0" step="100" value="0" inputmode="numeric" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="monthly">Every month</label>
+      <div class="money-input">
+        <span class="money-symbol money-symbol--plus" id="monthly-symbol"></span>
+        <input id="monthly" type="number" step="10" value="100" inputmode="numeric" />
+      </div>
+      <p class="hint">Negative values withdraw instead of paying in.</p>
+    </div>
+
+    <div class="field">
+      <label for="horizon">For <output id="horizon-value" for="horizon"></output></label>
+      <input id="horizon" type="range" min="1" max="30" step="1" value="10" />
+      <div class="scale" id="horizon-scale" aria-hidden="true"></div>
+    </div>
+
+    <div class="rail-foot">
+      <p id="windows-note" class="hint"></p>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title" id="chart-title">Portfolio value over time</h2>
+          <p class="panel-sub" id="chart-sub"></p>
+        </div>
+        <div class="legend" id="legend" role="list"></div>
+      </div>
+      <figure class="chart-figure">
+        <div class="chart-host" id="chart-host">
+          <svg id="chart" role="img" aria-labelledby="chart-title chart-desc"><desc id="chart-desc"></desc></svg>
+          <div class="tooltip" id="tooltip" hidden></div>
+        </div>
+        <figcaption class="chart-caption" id="chart-caption"></figcaption>
+      </figure>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <details class="panel disclosure">
+      <summary>Data and assumptions</summary>
+      <div class="disclosure-body" id="assumptions"></div>
+    </details>
+
+    <details class="panel disclosure">
+      <summary>Every historical start month</summary>
+      <div class="disclosure-body">
+        <div class="table-scroll">
+          <table class="windows" id="windows-table">
+            <thead>
+              <tr>
+                <th scope="col">Started</th>
+                <th scope="col">Ended</th>
+                <th scope="col" class="num">Paid in</th>
+                <th scope="col" class="num">Final value</th>
+                <th scope="col" class="num">Difference</th>
+                <th scope="col">Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <p class="footnote">
+      Educational backtest of past market data. These are historical outcomes, not
+      forecasts, and not financial advice. Figures are nominal, before tax, fees and
+      inflation.
+    </p>
+  </section>
+</main>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>
