@@ -410,8 +410,8 @@ function renderPlan(steps) {
     const to = Math.min(event.to ?? steps, steps);
     row.innerHTML =
       `<div class="plan-top">` +
-        `<div class="money-input">` +
-          `<span class="money-symbol${event.amount >= 0 ? " money-symbol--plus" : ""}">${event.amount < 0 ? "\u2212" : "+"}${symbol}</span>` +
+        `<div class="money-input${event.amount < 0 ? " is-negative" : event.amount > 0 ? " is-positive" : ""}">` +
+          `<span class="money-symbol">${symbol}</span>` +
           `<input type="number" step="10" value="${event.amount}" data-field="amount" inputmode="numeric" aria-label="Amount" />` +
         `</div>` +
         `<select data-field="cadence" aria-label="How often">` +
@@ -650,8 +650,10 @@ function render() {
   const symbol = CURRENCIES[input.currency] ?? input.currency;
   const monthlyAmount = Number(ui.monthly.value) || 0;
   ui.initialSymbol.textContent = symbol;
-  ui.monthlySymbol.textContent = (monthlyAmount < 0 ? "−" : "+") + symbol;
-  ui.monthlySymbol.classList.toggle("money-symbol--plus", monthlyAmount >= 0);
+  ui.monthlySymbol.textContent = symbol;
+  // The input shows its own minus sign, so the prefix only carries the colour.
+  ui.monthly.closest(".money-input").classList.toggle("is-negative", monthlyAmount < 0);
+  ui.monthly.closest(".money-input").classList.toggle("is-positive", monthlyAmount > 0);
 
   const cacheKey = `${instrument.id}|${input.currency}`;
   if (seriesCache?.key !== cacheKey) {

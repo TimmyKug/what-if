@@ -171,7 +171,11 @@ input:focus-visible {
   pointer-events: none;
 }
 
-.money-symbol--plus { color: var(--accent); }
+/* Direction is carried by colour, not by a second sign in front of the one the
+   field already shows. */
+.money-input.is-positive .money-symbol { color: var(--accent); }
+.money-input.is-negative .money-symbol,
+.money-input.is-negative input { color: #e86054; }
 
 .money-input input { padding-left: 1.875rem; font-variant-numeric: tabular-nums; }
 
