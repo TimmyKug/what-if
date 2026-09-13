@@ -100,8 +100,18 @@ const percent = (v) =>
 const change = (gain, paidIn) =>
   paidIn > 0 ? percent((gain / paidIn) * 100) : `${gain >= 0 ? "+" : "−"}${money.format(Math.abs(gain))}`;
 
-const yearsLabel = (n) => `${n} year${n === 1 ? "" : "s"}`;
-const yearsAdj = (n) => `${n}-year`;
+const DAYS_PER_YEAR = 365.2425;
+
+/** A horizon as a fraction of a year, which is what the step count is built on. */
+const durationYears = ({ years, months, days }) => years + months / 12 + days / DAYS_PER_YEAR;
+
+/** "10 years", "3 years 6 months", "2 months 10 days" — empty parts dropped. */
+function durationLabel({ years, months, days }) {
+  const parts = [
+    [years, "year"], [months, "month"], [days, "day"],
+  ].filter(([n]) => n > 0).map(([n, unit]) => `${n} ${unit}${n === 1 ? "" : "s"}`);
+  return parts.length ? parts.join(" ") : "0 months";
+}
 
 const CADENCE_WORD = { monthly: "month", weekly: "week", daily: "trading day" };
 
@@ -187,11 +197,18 @@ function drawChart(result, years) {
     );
   }
 
-  const everyN = Math.ceil(years / Math.max(2, Math.floor(plotW / 58)));
+  // Short horizons are ticked in months; a fractional last year gets no tick of
+  // its own rather than a label that reads as a whole year it is not.
   svg.append(el("line", { class: "axis-line", x1: pad.left, x2: pad.left + plotW, y1: y(yLo), y2: y(yLo) }));
-  for (let yr = 0; yr <= years; yr += everyN) {
-    svg.append(el("text", { class: "axis-text", "text-anchor": "middle", x: x((yr / years) * steps), y: pad.top + plotH + 18 },
-      yr === 0 ? "start" : `${yr}y`));
+  const room = Math.max(2, Math.floor(plotW / 58));
+  const inMonths = years < 2;
+  const total = inMonths ? Math.round(years * 12) : Math.floor(years);
+  const everyN = Math.max(1, Math.ceil(total / room));
+  for (let t = 0; t <= total; t += everyN) {
+    const fraction = (inMonths ? t / 12 : t) / years;
+    if (fraction > 1) break;
+    svg.append(el("text", { class: "axis-text", "text-anchor": "middle", x: x(fraction * steps), y: pad.top + plotH + 18 },
+      t === 0 ? "start" : `${t}${inMonths ? "m" : "y"}`));
   }
 
   // Everywhere any historical timeline ever went. Drawn thinned out, because at
@@ -301,9 +318,11 @@ const ui = {
   monthly: document.getElementById("monthly"),
   cadence: document.getElementById("cadence"),
   cadenceHint: document.getElementById("cadence-hint"),
-  horizon: document.getElementById("horizon"),
-  horizonValue: document.getElementById("horizon-value"),
-  horizonScale: document.getElementById("horizon-scale"),
+  years: document.getElementById("years"),
+  months: document.getElementById("months"),
+  days: document.getElementById("days"),
+  daysPart: document.getElementById("days-part"),
+  horizonHint: document.getElementById("horizon-hint"),
   instrumentHint: document.getElementById("instrument-hint"),
   currencyHint: document.getElementById("currency-hint"),
   initialSymbol: document.getElementById("initial-symbol"),
@@ -327,7 +346,9 @@ function readInputs() {
     initial: Math.max(0, Number(ui.initial.value) || 0),
     contribution: Number(ui.monthly.value) || 0,
     cadence: ui.cadence.value,
-    years: Number(ui.horizon.value),
+    years: Math.max(0, Math.trunc(Number(ui.years.value) || 0)),
+    months: Math.max(0, Math.trunc(Number(ui.months.value) || 0)),
+    days: Math.max(0, Math.trunc(Number(ui.days.value) || 0)),
   };
 }
 
@@ -418,12 +439,12 @@ function renderTable(result) {
   }));
 }
 
-function renderAssumptions(series, result, { instrument, currency, years, cadence, longer }) {
+function renderAssumptions(series, result, { instrument, currency, horizon, cadence, longer }) {
   const warnings = [];
   if (longer) {
     warnings.push(
       `${longer.name} covers the same kind of portfolio from ${longer.from}, ${longer.extra.toLocaleString()} more start dates than this series. ` +
-      `Its worst ${yearsAdj(years)} run ended at ${money.format(longer.worst)} against ${money.format(longer.paidIn)} paid in — ` +
+      `Its worst run over ${durationLabel(horizon)} ended at ${money.format(longer.worst)} against ${money.format(longer.paidIn)} paid in — ` +
       `${longer.delta} than the worst shown here. A shorter history does not just blur the range, it can miss the crash altogether.`,
     );
   }
@@ -438,7 +459,7 @@ function renderAssumptions(series, result, { instrument, currency, years, cadenc
   }
   const spanYears = result.windows / (series.daily ? observationsPerYear(series.keys, true) : 12);
   if (spanYears < 10) {
-    warnings.push(`This series offers ${result.windows.toLocaleString()} start dates for a ${yearsAdj(years)} plan, spanning ${spanYears.toFixed(1)} years. Neighbouring windows share almost all of their history, so "best" and "worst" describe two particular start dates rather than the full range of what is possible.`);
+    warnings.push(`This series offers ${result.windows.toLocaleString()} start dates for a plan of ${durationLabel(horizon)}, spanning ${spanYears.toFixed(1)} years. Neighbouring windows share almost all of their history, so "best" and "worst" describe two particular start dates rather than the full range of what is possible.`);
   }
   if (result.depleted) {
     warnings.push(`The money ran out before the end in ${result.depleted.toLocaleString()} of ${result.windows.toLocaleString()} timelines. Those are shown flat at zero from the point the portfolio could no longer cover the withdrawal.`);
@@ -462,7 +483,7 @@ function renderAssumptions(series, result, { instrument, currency, years, cadenc
       : instrument.grossOfTax ? "Total return, gross of dividend withholding tax"
       : "Total return, net of dividend withholding tax"}</dd>` +
     `<dt>History used</dt><dd>${keyLabel(series.keys[0], series.daily)} – ${keyLabel(series.keys.at(-1), series.daily)} · ${series.returns.length.toLocaleString()} observations</dd>` +
-    `<dt>Start dates tested</dt><dd>${result.windows.toLocaleString()} overlapping ${yearsAdj(years)} periods</dd>` +
+    `<dt>Start dates tested</dt><dd>${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)}, one per start date</dd>` +
     `<dt>Buying</dt><dd>Every ${CADENCE_WORD[cadence]}${series.daily && cadence !== "daily" ? `, on the first trading day of each ${CADENCE_WORD[cadence]}` : ""}</dd>` +
     `<dt>Cash-flow order</dt><dd>The balance earns each period's return first, then the payment is added</dd>` +
     `<dt>Not included</dt><dd>Tax, trading fees, fund costs beyond those already in the price, and inflation</dd>` +
@@ -542,17 +563,24 @@ async function render() {
       : `${instrument.name} is quoted in ${input.currency}, so no conversion is applied.`;
 
   const perYear = observationsPerYear(series.keys, series.daily);
-  const maxYears = Math.max(1, Math.floor((series.returns.length / perYear) - 0.5));
-  ui.horizon.max = Math.min(30, maxYears);
-  if (Number(ui.horizon.value) > Number(ui.horizon.max)) ui.horizon.value = ui.horizon.max;
-  const years = Number(ui.horizon.value);
-  ui.horizonValue.textContent = yearsLabel(years);
-  ui.horizonScale.replaceChildren(
-    Object.assign(document.createElement("span"), { textContent: "1y" }),
-    Object.assign(document.createElement("span"), { textContent: `${ui.horizon.max}y` }),
-  );
 
-  const steps = Math.round(years * perYear);
+  // Days cannot mean anything against month-end observations.
+  ui.days.disabled = !series.daily;
+  ui.daysPart.title = series.daily ? "" : "Daily buying uses daily data, where a day is a step";
+
+  const requested = Math.max(1, Math.round(durationYears(input) * perYear));
+  const available = series.returns.length;
+  const steps = Math.min(requested, available);
+  const horizon = steps === requested
+    ? input
+    : { years: Math.floor(steps / perYear), months: Math.round((steps / perYear % 1) * 12), days: 0 };
+
+  ui.horizonHint.textContent = steps < requested
+    ? `Only ${durationLabel(horizon)} of history is available, so that is what is shown.`
+    : series.daily
+      ? ""
+      : "Month-end data, so days are ignored here.";
+  const years = steps / perYear;
   const result = runScenario(series, {
     steps, initial: input.initial, contribution: input.contribution, cadence: input.cadence,
   });
@@ -563,14 +591,14 @@ async function render() {
   result.daily = series.daily;
 
   ui.chartSub.textContent =
-    `${yearsLabel(years)} of ${instrument.name} in ${input.currency}, buying every ${CADENCE_WORD[input.cadence]}, ` +
+    `${durationLabel(horizon)} of ${instrument.name} in ${input.currency}, buying every ${CADENCE_WORD[input.cadence]}, ` +
     `replayed from all ${result.windows.toLocaleString()} start dates in the data.`;
   ui.chartDesc.textContent =
-    `Line chart of portfolio value over ${yearsLabel(years)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
+    `Line chart of portfolio value over ${durationLabel(horizon)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
     `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))}, ` +
     `against ${money.format(result.paidIn.at(-1))} paid in. The median outcome was ${money.format(result.paths.median.at(-1))}.`;
   ui.windowsNote.textContent =
-    `Tested against ${result.windows.toLocaleString()} overlapping ${yearsAdj(years)} periods from ${keyLabel(series.keys[0], series.daily)}.`;
+    `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0], series.daily)}.`;
   // Buying daily at the same figure is ~21x the money, so state the equivalent
   // monthly rate: comparing cadences is only meaningful at the same total.
   if (input.cadence === "monthly") {
@@ -584,7 +612,7 @@ async function render() {
 
   drawChart(result, years);
   renderTable(result);
-  renderAssumptions(series, result, { ...input, instrument, years, longer: longerHistory(instrument, input, steps, result) });
+  renderAssumptions(series, result, { ...input, instrument, horizon, longer: longerHistory(instrument, input, steps, result) });
 }
 
 async function init() {
@@ -597,7 +625,8 @@ async function init() {
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
 
-  for (const control of [ui.instrument, ui.currency, ui.initial, ui.monthly, ui.cadence, ui.horizon]) {
+  for (const control of [ui.instrument, ui.currency, ui.initial, ui.monthly, ui.cadence,
+                        ui.years, ui.months, ui.days]) {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);

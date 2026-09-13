@@ -490,3 +490,32 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   .disclosure summary { padding: 0.7rem 0.85rem; }
   .disclosure-body { padding-inline: 0.85rem; }
 }
+
+/* ---------- duration (years / months / days) ---------- */
+
+.duration-field { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+.duration-field legend {
+  padding: 0;
+  margin-bottom: 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.duration { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+
+.duration-part { display: grid; gap: 0.2rem; min-width: 0; }
+
+.duration-part input { padding: 0.5rem 0.4rem; text-align: center; font-variant-numeric: tabular-nums; }
+
+.duration-part span {
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+}
+
+/* Days are meaningless against month-end observations, so the control says so
+   rather than silently rounding. */
+.duration-part input:disabled { opacity: 0.4; cursor: not-allowed; }
+.duration-part input:disabled + span { opacity: 0.4; }

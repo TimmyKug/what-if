@@ -142,6 +142,15 @@ Defaults: **Developed Markets**, currency guessed from the visitor's time zone
 (falling back to their locale), **0** starting amount, **+100 per month**, over
 **10 years**.
 
+The horizon is set as years, months and days rather than a whole number of years.
+The step count is `round(duration_in_years × observations_per_year)`, with
+`observations_per_year` measured from the series itself — the daily files average
+about 261 observations a year rather than 252, because they follow the union of
+developed-market calendars rather than one exchange. A horizon longer than the
+available history is capped at it and the control says so.
+
+Days are disabled against monthly data, where a day cannot mean anything.
+
 The engine replays that plan once for every historical start month the series is
 long enough to cover, and the chart draws:
 

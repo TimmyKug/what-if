@@ -52,11 +52,24 @@
       <p class="hint" id="cadence-hint">Negative values withdraw instead of paying in.</p>
     </div>
 
-    <div class="field">
-      <label for="horizon">For <output id="horizon-value" for="horizon"></output></label>
-      <input id="horizon" type="range" min="1" max="30" step="1" value="10" />
-      <div class="scale" id="horizon-scale" aria-hidden="true"></div>
-    </div>
+    <fieldset class="field duration-field">
+      <legend>For</legend>
+      <div class="duration">
+        <label class="duration-part">
+          <input id="years" type="number" min="0" max="99" step="1" value="10" inputmode="numeric" />
+          <span>years</span>
+        </label>
+        <label class="duration-part">
+          <input id="months" type="number" min="0" max="11" step="1" value="0" inputmode="numeric" />
+          <span>months</span>
+        </label>
+        <label class="duration-part" id="days-part">
+          <input id="days" type="number" min="0" max="30" step="1" value="0" inputmode="numeric" />
+          <span>days</span>
+        </label>
+      </div>
+      <p class="hint" id="horizon-hint"></p>
+    </fieldset>
 
     <div class="rail-foot">
       <p id="windows-note" class="hint"></p>
