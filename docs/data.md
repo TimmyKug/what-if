@@ -30,20 +30,18 @@ Two things the app says on screen rather than hiding:
 
 ## Terms, per source
 
-The code in this repository is MIT licensed; the files in `data/` are not, because
-they are not ours to relicense.
-What is known about each, none of which is legal advice:
+The code in this repository is MIT licensed; the files in `data/` are not, because they are not mine to relicense.
+These are the six sources actually committed, and what is known about each — none of which is legal advice.
 
-| Source | Position |
-|---|---|
-| **Eurostat** (rates, prices) | EU open data, reusable with attribution. |
-| **US Bureau of Labor Statistics** (US prices) | US government work, public domain. |
-| **UK Office for National Statistics** (UK prices) | Open Government Licence v3.0, attribution required. |
-| **Fama/French** (Developed, US) | "Copyright Eugene F. Fama and Kenneth R. French", no stated licence. Universally used for research; publishing it should start with an email to Dartmouth. |
-| **MSCI** (World, ACWI, EM) | MSCI's copyrighted index data, from an undocumented endpoint. Fine locally, not a basis for redistribution — see `AGENTS.md`. |
-| **Market feeds** (ETFs, indices, crypto) | Terms generally prohibit redistribution. |
+| Source | What it provides here | Position |
+|---|---|---|
+| **Eurostat** | exchange rates for all 7 non-USD currencies; price indices for EUR, CHF, SEK, NOK, DKK, PLN | EU open data, reusable with attribution. |
+| **US Bureau of Labor Statistics** | the USD price index | US government work, public domain. |
+| **UK Office for National Statistics** | the GBP price index | Open Government Licence v3.0, attribution required. |
+| **Fama/French** | Developed Markets, US Market (1926) | "Copyright Eugene F. Fama and Kenneth R. French", no stated licence. Universally used for research; publishing it should start with an email to Dartmouth. |
+| **MSCI** | MSCI World, ACWI, Emerging Markets | MSCI's copyrighted index data, from an undocumented endpoint. Fine locally, not a basis for redistribution — see `AGENTS.md`. |
+| **Yahoo Finance** | the other eight series: EUNL, MSCI World price index, S&P 500, FTSE Global All Cap, US Total Market, MSCI EM ex China, Bitcoin, Ethereum | Undocumented endpoint; the terms prohibit redistribution. |
 
-The two rows at the bottom are the reason this repository being public is a
-question rather than a formality.
-The free-and-clear foundation is Eurostat plus Fama/French with permission; the
-rest are conveniences that could be dropped.
+The bottom two rows are the reason this repository being public is a question rather than a formality.
+The free-and-clear foundation is Eurostat plus Fama/French with permission — between them they cover the default series, every currency, and real terms.
+MSCI and Yahoo are conveniences that could be dropped.

@@ -7,7 +7,7 @@ This licence covers the source code in this repository — `engine.js`, `app.js`
 documentation.
 
 It does NOT cover the contents of `data/`. Those files hold market data compiled
-by third parties, which is not the copyright holder's to relicense. See
+by third parties, which is not mine to relicense. See
 `docs/data.md` for where each series comes from and what is known about its
 terms.
 

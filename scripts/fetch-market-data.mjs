@@ -409,7 +409,8 @@ async function main() {
   const instruments = [];
   for (const spec of INSTRUMENTS) {
     const { months, values } = await chart(spec.symbol);
-    instruments.push({ ...spec, months, values });
+    const { symbol, ...rest } = spec;
+    instruments.push({ ...rest, months, values });
     console.log(`${spec.symbol.padEnd(18)} ${months[0]} → ${months.at(-1)}  ${months.length} months`);
   }
 
@@ -426,7 +427,6 @@ async function main() {
     }
     instruments.unshift({
       id: index.id,
-      symbol: index.code,
       name: index.name,
       detail: index.detail,
       assetClass: index.assetClass,
@@ -443,7 +443,6 @@ async function main() {
     const { months, values } = await frenchFactors(spec.file);
     instruments.push({
       id: spec.id,
-      symbol: spec.file.replace("_CSV.zip", ""),
       name: spec.name,
       detail: spec.detail,
       currency: "USD",
@@ -469,7 +468,7 @@ async function main() {
 
   await writeFile(
     OUT,
-    JSON.stringify({ fetchedAt: new Date().toISOString(), source: "Yahoo Finance", instruments, fx, cpi }, null, 1),
+    JSON.stringify({ fetchedAt: new Date().toISOString(), source: "Yahoo Finance", instruments, fx, cpi }),
   );
   console.log(`\nwrote ${OUT}`);
 }
