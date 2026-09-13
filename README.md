@@ -131,6 +131,11 @@ Eurostat is official EU statistics with clean reuse terms; the Fama/French libra
 Fama and Kenneth R.
 French with no stated licence, so publishing this anywhere public should start with an email to Dartmouth.
 
+**Compare with a fixed rate** draws the line a compound-interest calculator would have given you, dotted, alongside the historical ones.
+At 3% a year the same decade ends at €139,448 against a historical median of €186,213 — and a worst case of €84,582, which is below the €120,000 paid in.
+Seeing the guaranteed line cross through the historical range is the clearest statement of what the trade actually is.
+In real terms the rate is read as a real rate, since a deterministic line has no window whose inflation it could be deflated by.
+
 ## How it works
 
 Monthly observations.

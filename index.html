@@ -67,6 +67,15 @@
       <div id="plan" class="plan" role="group" aria-labelledby="plan-label" hidden></div>
       <button type="button" id="add-event" class="add-event" hidden>Add to plan</button>
       <p class="hint" id="plan-hint">Choose pay in or take out for each amount.</p>
+
+      <label class="switch">
+        <input type="checkbox" id="fixed-on" />
+        <span>Compare with a fixed rate</span>
+      </label>
+      <div class="fixed-rate" id="fixed-rate-row" hidden>
+        <input id="fixed-rate" type="number" min="0" max="30" step="0.5" value="3" inputmode="decimal" aria-label="Fixed annual rate" />
+        <span id="fixed-note">% a year, guaranteed</span>
+      </div>
     </div>
 
     <fieldset class="field duration-field">

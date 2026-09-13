@@ -23,6 +23,9 @@ const SERIES = [
 
 const PAID_IN = { key: "paidIn", label: "Paid in", color: "#7d8a8d" };
 
+/** The line a savings calculator would have drawn, for comparison. */
+const FIXED = { key: "fixed", label: "Fixed rate", color: "#9aa4a3" };
+
 /**
  * Only currencies with a usable consumer price index, so "today's money" works
  * everywhere rather than being unavailable in half the list. That rules out JPY,
@@ -166,6 +169,7 @@ function drawChart(result, years) {
   const lines = [
     ...SERIES.map((s) => ({ ...s, values: result.paths[s.key] })),
     { ...PAID_IN, values: result.paidIn, dashed: true },
+    ...(result.fixed ? [{ ...FIXED, values: result.fixed, fixed: true }] : []),
   ];
 
   let lo = Infinity, hi = -Infinity;
@@ -219,7 +223,8 @@ function drawChart(result, years) {
 
   for (const line of [lines.at(-1), ...lines.slice(0, -1)]) {
     svg.append(el("path", {
-      class: "series-line", d: pathFor(line.values), stroke: line.color,
+      class: `series-line${line.fixed ? " series-line--fixed" : ""}`,
+      d: pathFor(line.values), stroke: line.color,
       ...(line.dashed ? { "stroke-dasharray": "5 4", "stroke-width": 1.5 } : {}),
     }));
   }
@@ -305,6 +310,10 @@ const ui = {
   instrument: document.getElementById("instrument"),
   currency: document.getElementById("currency"),
   realTerms: document.getElementById("real-terms"),
+  fixedOn: document.getElementById("fixed-on"),
+  fixedRate: document.getElementById("fixed-rate"),
+  fixedRateRow: document.getElementById("fixed-rate-row"),
+  fixedNote: document.getElementById("fixed-note"),
   plan: document.getElementById("plan"),
   addEvent: document.getElementById("add-event"),
   simplePlan: document.getElementById("simple-plan"),
@@ -351,6 +360,23 @@ let nextEventId = 2;
  */
 let proMode = false;
 let lastInstrumentId = null;
+
+/**
+ * The same plan at a guaranteed rate — what a compound-interest calculator would
+ * have told you. In real terms the entered figure is read as a real rate, since
+ * a deterministic line has no window whose inflation it could be deflated by.
+ */
+function fixedPath(schedule, steps, annualPercent) {
+  const monthly = (1 + annualPercent / 100) ** (1 / 12) - 1;
+  const path = new Array(steps + 1);
+  let balance = schedule[0];
+  path[0] = balance;
+  for (let t = 1; t <= steps; t++) {
+    balance = balance * (1 + monthly) + schedule[t];
+    path[t] = balance;
+  }
+  return path;
+}
 
 let monthlyOut = false;
 
@@ -485,6 +511,7 @@ function readInputs() {
     instrumentId: ui.instrument.value,
     currency: ui.currency.value,
     real: ui.realTerms.checked,
+    fixed: ui.fixedOn.checked ? Math.max(0, Number(ui.fixedRate.value) || 0) : null,
     years: Math.max(0, Math.trunc(Number(ui.years.value) || 0)),
     months: Math.max(0, Math.trunc(Number(ui.months.value) || 0)),
   };
@@ -738,7 +765,13 @@ function render() {
     : isSimplePlan()
       ? "Months count from the start of the plan."
       : "Switching back to simple replaces this plan with a single monthly amount.";
-  const result = runScenario(series, { steps, schedule: buildSchedule(plan, steps) });
+  const schedule = buildSchedule(plan, steps);
+  const result = runScenario(series, { steps, schedule });
+  ui.fixedRateRow.hidden = input.fixed === null;
+  // A deterministic line has no window whose inflation it could be deflated by,
+  // so in real terms the entered figure is read as a real rate.
+  ui.fixedNote.textContent = input.real ? "% a year above inflation" : "% a year, guaranteed";
+  if (result && input.fixed !== null) result.fixed = fixedPath(schedule, steps, input.fixed);
   if (!result) {
     ui.chartSub.textContent = "Not enough history for this horizon.";
     return;
@@ -785,7 +818,8 @@ async function init() {
     plan.push({ id: nextEventId++, amount: 0, cadence: "once", from: 0, to: null });
     render();
   });
-  for (const control of [ui.instrument, ui.currency, ui.realTerms, ui.years, ui.months]) {
+  for (const control of [ui.instrument, ui.currency, ui.realTerms, ui.fixedOn, ui.fixedRate,
+                        ui.years, ui.months]) {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);
