@@ -231,9 +231,11 @@ function moveCursor(event) {
   const label = t === 0 ? "At the start" :
     [Math.floor(elapsedMonths / 12) ? `${Math.floor(elapsedMonths / 12)}y` : "",
      elapsedMonths % 12 ? `${elapsedMonths % 12}m` : ""].filter(Boolean).join(" ") || "0m";
+  // Ordered by value at the hovered point, highest first, so the rows match the
+  // vertical order of the lines under the cursor rather than a fixed sequence.
   tooltip.innerHTML =
     `<div class="tooltip-head">${label}</div>` +
-    [...lines].reverse().map((line) =>
+    [...lines].sort((a, b) => b.values[t] - a.values[t]).map((line) =>
       `<div class="tooltip-row"><span class="dot" style="background:${line.color}"></span>` +
       `<span class="name">${line.label}</span><span class="val">${money.format(line.values[t])}</span></div>`,
     ).join("");
