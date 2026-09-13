@@ -1,16 +1,15 @@
 # What if?
 
-**A backtester for saving plans.** You describe a plan — pay in this much, from
-then until then, take some out here — and it replays that exact plan against every
-stretch of real market history long enough to hold it. Not one run. Every run.
+**A backtester for saving plans.**
+You describe a plan — pay in this much, from then until then, take some out here — and it replays that exact plan against every stretch of real market history long enough to hold it.
+Not one run.
+Every run.
 
-The question it answers is *"how differently could this have gone?"*, which a
-compound-interest calculator cannot answer at all. Those ask you for an expected
-return and hand back one number. Markets do not deliver an expected return; they
-deliver a sequence, and the sequence you happen to get decides the outcome.
+The question it answers is *"how differently could this have gone?"*, which a compound-interest calculator cannot answer at all.
+Those ask you for an expected return and hand back one number.
+Markets do not deliver an expected return; they deliver a sequence, and the sequence you happen to get decides the outcome.
 
-€100 a month into developed-market equities for ten years, across all 313
-ten-year stretches since 1990:
+€100 a month into developed-market equities for ten years, across all 313 ten-year stretches since 1990:
 
 | | Result | vs the €12,000 paid in |
 |---|---|---|
@@ -18,39 +17,34 @@ ten-year stretches since 1990:
 | Average | €18,621 | +55% |
 | Worst ten years | €8,458 | **−30%** |
 
-Same plan, same index, same decade-long horizon. The gap between those rows is
-the thing worth knowing, and it is the only thing this tool is really for.
+Same plan, same index, same decade-long horizon.
+The gap between those rows is the thing worth knowing, and it is the only thing this tool is really for.
 
-> Educational backtest of historical data. Not financial advice, not a forecast.
+> Educational backtest of historical data.
+> Not financial advice, not a forecast.
 > Figures are nominal and exclude tax, trading fees and inflation.
 
 ## Why it exists
 
-Every savings calculator asks for an expected annual return. That framing quietly
-assumes the answer: pick 7% and you will be told you end up with the 7% number.
-But nobody gets the average. They get 1990-2000, or 1999-2009, and those two
-decades produced results that differ by a factor of four for identical behaviour.
+Every savings calculator asks for an expected annual return.
+That framing quietly assumes the answer: pick 7% and you will be told you end up with the 7% number.
+But nobody gets the average.
+They get 1990-2000, or 1999-2009, and those two decades produced results that differ by a factor of four for identical behaviour.
 
-A backtest cannot predict which one you will get either. What it can do is show
-you the full range that actually happened, so a plan can be judged on its worst
-case rather than its brochure case. That is the whole argument for this existing.
+A backtest cannot predict which one you will get either.
+What it can do is show you the full range that actually happened, so a plan can be judged on its worst case rather than its brochure case.
+That is the whole argument for this existing.
 
-The design follows from it: the worst line is never hidden, the number of
-historical windows behind every result is always on screen, and when a data
-series is too short to have seen a bad decade, the app says so rather than
-reporting a reassuring number.
+The design follows from it: the worst line is never hidden, the number of historical windows behind every result is always on screen, and when a data series is too short to have seen a bad decade, the app says so rather than reporting a reassuring number.
 
 ## Using it
 
-Pick what you would have invested in, a currency, and a horizon. Then describe
-the plan.
+Pick what you would have invested in, a currency, and a horizon.
+Then describe the plan.
 
-**Simple mode** is a starting amount and a monthly figure, which covers almost
-every plan anyone actually has.
+**Simple mode** is a starting amount and a monthly figure, which covers almost every plan anyone actually has.
 
-**Pro mode** replaces those two fields with a list of cash-flow events, which can
-express anything: waiting before you start, a lump sum partway through, drawing
-an income back out, or all three at once.
+**Pro mode** replaces those two fields with a list of cash-flow events, which can express anything: waiting before you start, a lump sum partway through, drawing an income back out, or all three at once.
 
 | Idea | How it is written |
 |---|---|
@@ -60,14 +54,12 @@ an income back out, or all three at once.
 | A lump sum later | one payment, in that month |
 | Drawing down | a repeating payment set to *Take out* |
 
-A withdrawal larger than the balance takes only what is there. Money that was
-never in the portfolio cannot leave it, so the shortfall is not counted as paid
-out, and the run is flagged as having run dry.
+A withdrawal larger than the balance takes only what is there.
+Money that was never in the portfolio cannot leave it, so the shortfall is not counted as paid out, and the run is flagged as having run dry.
 
 ## Where the data comes from
 
-Everything is committed to this repository, so the app makes **no network calls
-at runtime and needs no API key**.
+Everything is committed to this repository, so the app makes **no network calls at runtime and needs no API key**.
 
 | Series | Source | Returns | From | 10-year start dates |
 |---|---|---|---|---|
@@ -84,84 +76,70 @@ at runtime and needs no API key**.
 | US Total Market | market feed | total return | 1992-04 | 294 |
 | Bitcoin · Ethereum | market feed | price (none exist) | 2014-09 · 2017-11 | 25 · 0 |
 
-Exchange rates are Eurostat's `ert_bil_eur_m` at end-of-period, a continuous
-euro/ECU series back to **1971**. The euro replaced the ECU 1:1 in 1999, so it
-spans that boundary; every currency offered reaches past 1990 except SGD.
+Exchange rates are Eurostat's `ert_bil_eur_m` at end-of-period, a continuous euro/ECU series back to **1971**.
+The euro replaced the ECU 1:1 in 1999, so it spans that boundary; every currency offered reaches past 1990 except SGD.
 
 ### Why these, and what each one costs you
 
-**Developed Markets is the default** because history matters more here than a
-familiar name. It is the Fama/French developed-market portfolio — every listed
-company in the developed world weighted by market cap, built from the underlying
-stocks rather than repackaged from an index product, which is why it starts in
-1990 instead of whenever a tracker launched. In practice it *is* the MSCI World
-universe: the two correlate at **0.9966** over 307 overlapping months.
+**Developed Markets is the default** because history matters more here than a familiar name.
+It is the Fama/French developed-market portfolio — every listed company in the developed world weighted by market cap, built from the underlying stocks rather than repackaged from an index product, which is why it starts in 1990 instead of whenever a tracker launched.
+In practice it *is* the MSCI World universe: the two correlate at **0.9966** over 307 overlapping months.
 
-The price of that choice is that Fama/French reinvest dividends *gross* of
-withholding tax where MSCI's `NETR` is net, worth roughly 0.5-0.7pp a year. The
-app says so on screen.
+The price of that choice is that Fama/French reinvest dividends *gross* of withholding tax where MSCI's `NETR` is net, worth roughly 0.5-0.7pp a year.
+The app says so on screen.
 
-The price of the alternative is worse. The same plan's worst ten years is **−30%**
-on Developed Markets but **+2%** on MSCI World, entirely because MSCI's free data
-begins in December 2000, after the dot-com peak. A calculator whose headline
-downside is "roughly break-even" is not doing its job. Whenever a longer
-comparable series exists, the assumptions panel names it and states its worst
-outcome, so a short history can never quietly flatter a plan.
+The price of the alternative is worse.
+The same plan's worst ten years is **−30%** on Developed Markets but **+2%** on MSCI World, entirely because MSCI's free data begins in December 2000, after the dot-com peak.
+A calculator whose headline downside is "roughly break-even" is not doing its job.
+Whenever a longer comparable series exists, the assumptions panel names it and states its worst outcome, so a short history can never quietly flatter a plan.
 
 Three things worth recording, because each cost real time to find:
 
-- **Prefer accumulating share classes.** Yahoo's dividend adjustment on the
-  distributing `VWRL.AS` trails MSCI ACWI by 1.92pp/year at 0.88 correlation,
-  while the accumulating classes of the *same fund* track it at 0.983-0.994. The
-  FTSE row uses `VT` for this reason.
-- **Monthly bars are stamped in exchange-local time.** Read as UTC, every
-  European listing was labelled one month early and paired with the wrong month's
-  exchange rate.
-- **Use end-of-period exchange rates, not monthly averages.** The prices being
-  converted are month-end closes; an average rate injects timing noise worth
-  about 0.12 of correlation.
+- **Prefer accumulating share classes.**
+  Yahoo's dividend adjustment on the
+distributing `VWRL.AS` trails MSCI ACWI by 1.92pp/year at 0.88 correlation, while the accumulating classes of the *same fund* track it at 0.983-0.994.
+The FTSE row uses `VT` for this reason.
+- **Monthly bars are stamped in exchange-local time.**
+  Read as UTC, every
+European listing was labelled one month early and paired with the wrong month's exchange rate.
+- **Use end-of-period exchange rates, not monthly averages.**
+  The prices being
+converted are month-end closes; an average rate injects timing noise worth about 0.12 of correlation.
 
 ### On the MSCI series
 
-`app2.msci.com` is the undocumented JSON backend of MSCI's public end-of-day
-index search. It needs no key, and it is also MSCI's copyrighted index data.
-That is fine for a personal tool; it is **not** a basis for a public product, and
-non-commercial use is not an exemption — in the EU the database right (Directive
-96/9/EC, UrhG §§87a-87e) applies regardless of commercial intent.
+`app2.msci.com` is the undocumented JSON backend of MSCI's public end-of-day index search.
+It needs no key, and it is also MSCI's copyrighted index data.
+That is fine for a personal tool; it is **not** a basis for a public product, and non-commercial use is not an exemption — in the EU the database right (Directive 96/9/EC, UrhG §§87a-87e) applies regardless of commercial intent.
 
-The Fama/French and Eurostat series are the publishable foundation. Eurostat is
-official EU statistics with clean reuse terms; the Fama/French library is
-copyright Eugene F. Fama and Kenneth R. French with no stated licence, so
-publishing this anywhere public should start with an email to Dartmouth.
+The Fama/French and Eurostat series are the publishable foundation.
+Eurostat is official EU statistics with clean reuse terms; the Fama/French library is copyright Eugene F.
+Fama and Kenneth R.
+French with no stated licence, so publishing this anywhere public should start with an email to Dartmouth.
 
 ## How it works
 
-Monthly observations. For every start month the series is long enough to cover,
-the plan is replayed:
+Monthly observations.
+For every start month the series is long enough to cover, the plan is replayed:
 
 ```js
 balance = balance * (1 + returns[i]) + schedule[t];
 ```
 
-The return is applied first and the cash flow second, so money never earns the
-return of the month it arrives in. `schedule[t]` is the net flow in month `t`
-and `schedule[0]` is the money present before the first month — every event in a
-plan collapses into that one array, which is why waits, lump sums and
-withdrawals cost the engine nothing.
+The return is applied first and the cash flow second, so money never earns the return of the month it arrives in.
+`schedule[t]` is the net flow in month `t` and `schedule[0]` is the money present before the first month — every event in a plan collapses into that one array, which is why waits, lump sums and withdrawals cost the engine nothing.
 
-The runs are then summarised as the best, the average and the worst, plus the
-band covering every run. **Best and worst are real single timelines** — the start
-months whose plan ended highest and lowest — not per-month percentiles, so each
-line is a path somebody could actually have lived through.
+The runs are then summarised as the best, the average and the worst, plus the band covering every run.
+**Best and worst are real single timelines** — the start months whose plan ended highest and lowest — not per-month percentiles, so each line is a path somebody could actually have lived through.
 
-One honest caveat the app repeats where it matters: overlapping windows are not
-independent samples. 313 ten-year windows drawn from 36 years of history are 313
-views of the same 36 years. More windows make the extremes less of a calendar
-accident; they do not make them more certain.
+One honest caveat the app repeats where it matters: overlapping windows are not independent samples.
+313 ten-year windows drawn from 36 years of history are 313 views of the same 36 years.
+More windows make the extremes less of a calendar accident; they do not make them more certain.
 
 ## Running it
 
-A static page. No build step, no dependencies, no bundler.
+A static page.
+No build step, no dependencies, no bundler.
 
 ```sh
 python3 -m http.server 8000   # ES modules need http://, not file://
@@ -183,19 +161,16 @@ node scripts/verify-data.mjs <dir>  # integrity-check a fetched dataset
 | `scripts/` | fetch, verify, engine checks |
 | `.github/workflows/` | weekly data refresh, Pages deploy |
 
-Everything in `styles.css` is in `rem`, so `html { font-size }` scales the whole
-interface from one value.
+Everything in `styles.css` is in `rem`, so `html { font-size }` scales the whole interface from one value.
 
 ### Keeping the data honest
 
-`refresh-data.yml` runs weekly. It fetches into `data-staging/`, verifies,
-runs the engine checks against the staged copy, and only then promotes, commits
-and deploys. A failure at any step leaves the last good dataset in place.
+`refresh-data.yml` runs weekly.
+It fetches into `data-staging/`, verifies, runs the engine checks against the staged copy, and only then promotes, commits and deploys.
+A failure at any step leaves the last good dataset in place.
 
 The gate that earns its keep is the comparison against the previous vintage.
-Structural checks catch a truncated download; comparing to what is already
-committed catches a source that still returns valid JSON but has quietly changed
-what it means:
+Structural checks catch a truncated download; comparing to what is already committed catches a source that still returns valid JSON but has quietly changed what it means:
 
 | Check | Fails when |
 |---|---|
@@ -205,13 +180,11 @@ what it means:
 | Revision drift | >5% of shared returns move >0.01pp |
 | **Series break** | any shared return moves **>2pp** |
 
-That last row is the calendar guard: a one-month shift moves returns by whole
-percentage points, so it cannot hide as a revision. Between them these checks
-have caught four real bugs — the timezone shift, the averaged exchange rates, a
-broken dividend adjustment, and an off-by-one in the window count.
+That last row is the calendar guard: a one-month shift moves returns by whole percentage points, so it cannot hide as a revision.
+Between them these checks have caught four real bugs — the timezone shift, the averaged exchange rates, a broken dividend adjustment, and an off-by-one in the window count.
 
-To deploy: **Settings → Pages → Source: GitHub Actions**. Note the MSCI caveat
-above before making the repository public.
+To deploy: **Settings → Pages → Source: GitHub Actions**.
+Note the MSCI caveat above before making the repository public.
 
 ## Support
 
