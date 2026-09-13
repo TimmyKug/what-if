@@ -38,14 +38,6 @@ const INSTRUMENTS = [
     adjusted: false,
   },
   {
-    id: "msci-acwi",
-    symbol: "ACWI",
-    name: "MSCI ACWI",
-    detail: "iShares MSCI ACWI ETF (world incl. emerging markets)",
-    currency: "USD",
-    adjusted: true,
-  },
-  {
     id: "sp500",
     symbol: "^SP500TR",
     name: "S&P 500",
@@ -151,6 +143,12 @@ const MSCI_INDICES = [
     code: "990100",
     name: "MSCI World (net return)",
     detail: "MSCI World Net Total Return index from 2000, computed by MSCI in each currency",
+  },
+  {
+    id: "msci-acwi",
+    code: "892400",
+    name: "MSCI ACWI (net return)",
+    detail: "MSCI ACWI Net Total Return from 2000 — developed plus emerging markets",
   },
 ];
 

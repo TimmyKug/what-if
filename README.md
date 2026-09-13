@@ -94,7 +94,7 @@ Each series carries its own currency and whether it is dividend-adjusted:
 | MSCI World (price only) | price return only | 1985-01 | 381 |
 | S&P 500 Total Return | total return | 1988-01 | 345 |
 | US Total Market (VTSMX) | total return | 1992-04 | 294 |
-| MSCI ACWI (ACWI) | total return | 2008-03 | 103 |
+| MSCI ACWI (net return) | net total return | 2000-12 | 189 |
 | MSCI World ETF (EUNL) | total return | 2009-08 | 86 |
 
 Usable history is the overlap of the equity series and the exchange-rate series,
@@ -115,7 +115,6 @@ Older instrument rows, for reference:
 |---|---|---|---|
 | MSCI World ETF (EUNL, Xetra) | EUR | total return | 2009 |
 | MSCI World Index | USD | price return only | 1985 |
-| MSCI ACWI (ACWI) | USD | total return | 2008 |
 | S&P 500 Total Return | USD | total return | 1988 |
 | US Total Market (VTSMX) | USD | total return | 1992 |
 
@@ -130,6 +129,10 @@ per unit as `rate(USD) / rate(currency)`.
 This matters more than it sounds: the previous market FX feed only went back to
 2003, which silently truncated *every* non-native series at 2003 when displayed
 in EUR. Switching sources restored the full history of all of them.
+
+Both MSCI rows are the `NETR` net total return variant. MSCI's own endpoint
+carries ACWI further back than the ETF proxy it replaced (2000-12 rather than
+2008-03), so the Yahoo `ACWI` row is gone.
 
 MSCI computes its indices separately in each currency, so its series is
 already denominated in USD, EUR, GBP, CHF, JPY, CAD, AUD, SEK, NOK, DKK, NZD and
