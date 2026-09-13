@@ -51,10 +51,10 @@ const MSCI_CURRENCIES = ["USD", "EUR"];
 
 const FRENCH = [
   { id: "ff-developed", file: "Developed_3_Factors_Daily_CSV.zip", name: "Developed Markets",
-    detail: "Fama/French developed-market total return from 1990, gross of dividend withholding tax",
+    detail: "Every listed company in the developed world, weighted by market cap — the MSCI World universe, built from the underlying stocks by Fama/French. Gross of dividend withholding tax.",
     grossOfTax: true },
   { id: "ff-us", file: "F-F_Research_Data_Factors_daily_CSV.zip", name: "US Market (1926)",
-    detail: "Fama/French US total market return from 1926, gross of dividend withholding tax",
+    detail: "Every listed company in the US, weighted by market cap, back to 1926 — built from the underlying stocks by Fama/French. Gross of dividend withholding tax.",
     grossOfTax: true },
 ];
 

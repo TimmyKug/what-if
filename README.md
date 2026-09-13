@@ -131,8 +131,15 @@ so the exchange rate only binds where it starts later than the equity data. It
 does for the US series (1926 equity, 1971 rates, so 1971 in EUR and 1926 in USD);
 it does not for any of the others, which all start after 1971.
 
-The default is the Fama/French developed-market series: it has the most history
-of any world-equity option here, and covers the dot-com crash and the financial
+The default, **Developed Markets**, is the Fama/French developed-market portfolio:
+every listed company in the developed world weighted by market cap, built from the
+underlying stocks rather than repackaged from an index product — which is why it
+starts in 1990 rather than whenever a tracker launched. Its four regions are North
+America, Europe, Japan, and Asia Pacific ex Japan, so in practice it is the MSCI
+World universe arrived at independently: the two correlate at **0.9966** over 307
+overlapping months, with a mean absolute monthly difference of 0.29pp.
+
+It has the most history of any world-equity option here, and covers the dot-com crash and the financial
 crisis, so the "worst" line is a genuinely bad decade rather than an artefact of
 a data set that starts in a bull market. Its one cost is that it reinvests
 dividends *gross* of withholding tax where an index like MSCI's `NETR` is net of
