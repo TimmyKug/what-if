@@ -158,7 +158,10 @@ function drawChart(result, years) {
   const steps = result.steps;
   const width = host.clientWidth || 720;
   const height = svg.clientHeight || 380;
-  const pad = { top: 16, right: 132, bottom: 30, left: 62 };
+  // Below this width the right margin costs more than the labels are worth, so
+  // the chart takes the full width and the legend carries the values instead.
+  const narrow = width < 560;
+  const pad = { top: 16, right: narrow ? 14 : 132, bottom: 30, left: narrow ? 46 : 62 };
   const plotW = Math.max(10, width - pad.left - pad.right);
   const plotH = Math.max(10, height - pad.top - pad.bottom);
 
@@ -220,26 +223,29 @@ function drawChart(result, years) {
     }));
   }
 
-  // Each line is labelled with its name and where it ended, so the figures live
-  // on the chart rather than in a row of tiles repeating it underneath.
-  const labels = lines
-    .map((line) => ({
-      text: line.label, color: line.color,
-      value: money.format(line.values.at(-1)),
-      at: y(line.values.at(-1)),
-    }))
-    .sort((a, b) => a.at - b.at);
-  // Each label is two lines now (name over value), so they need the height of
-  // both plus a gap before they stop colliding.
-  for (let i = 1; i < labels.length; i++) labels[i].at = Math.max(labels[i].at, labels[i - 1].at + 38);
-  const overflow = labels.at(-1).at - (pad.top + plotH);
-  if (overflow > 0) for (const label of labels) label.at -= overflow;
-  for (const label of labels) {
-    svg.append(
-      el("text", { class: "series-label", fill: label.color, x: pad.left + plotW + 10, y: label.at + 1 }, label.text),
-      el("text", { class: "series-value", x: pad.left + plotW + 10, y: label.at + 17 }, label.value),
-    );
+  if (!narrow) {
+    // Each line is labelled with its name and where it ended, so the figures
+    // live on the chart rather than in a row of tiles repeating it underneath.
+    const labels = lines
+      .map((line) => ({
+        text: line.label, color: line.color,
+        value: money.format(line.values.at(-1)),
+        at: y(line.values.at(-1)),
+      }))
+      .sort((a, b) => a.at - b.at);
+    // Each label is two lines (name over value), so they need the height of both
+    // plus a gap before they stop colliding.
+    for (let i = 1; i < labels.length; i++) labels[i].at = Math.max(labels[i].at, labels[i - 1].at + 38);
+    const overflow = labels.at(-1).at - (pad.top + plotH);
+    if (overflow > 0) for (const label of labels) label.at -= overflow;
+    for (const label of labels) {
+      svg.append(
+        el("text", { class: "series-label", fill: label.color, x: pad.left + plotW + 10, y: label.at + 1 }, label.text),
+        el("text", { class: "series-value", x: pad.left + plotW + 10, y: label.at + 17 }, label.value),
+      );
+    }
   }
+  renderLegend(lines, narrow);
 
   const cursor = el("g", { opacity: 0 });
   cursor.append(el("line", { class: "crosshair", y1: pad.top, y2: pad.top + plotH }));
@@ -367,13 +373,20 @@ function renderInstrumentOptions(data) {
   if (selected) ui.instrument.value = selected;
 }
 
-function renderLegend() {
-  ui.legend.replaceChildren(...[...SERIES, PAID_IN].map((s) => {
+/**
+ * On a narrow screen the legend carries each series' ending value, because the
+ * chart gives up its right margin there and the direct labels with it.
+ */
+function renderLegend(lines, withValues) {
+  ui.legend.classList.toggle("legend--values", withValues);
+  ui.legend.replaceChildren(...lines.map((line) => {
     const item = document.createElement("div");
     item.className = "legend-item";
     item.setAttribute("role", "listitem");
     item.innerHTML =
-      `<span class="legend-swatch${s === PAID_IN ? " legend-swatch--dashed" : ""}" style="color:${s.color}"></span>${s.label}`;
+      `<span class="legend-swatch${line.dashed ? " legend-swatch--dashed" : ""}" style="color:${line.color}"></span>` +
+      `<span class="legend-name">${line.label}</span>` +
+      (withValues ? `<span class="legend-value">${money.format(line.values.at(-1))}</span>` : "");
     return item;
   }));
 }
@@ -593,7 +606,6 @@ async function init() {
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
 
-  renderLegend();
   for (const control of [ui.instrument, ui.currency, ui.initial, ui.monthly, ui.cadence, ui.horizon]) {
     control.addEventListener("input", render);
   }

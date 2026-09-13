@@ -90,6 +90,12 @@ body {
 
 @media (max-width: 900px) {
   .workspace { grid-template-columns: minmax(0, 1fr); padding-inline: 1rem; }
+
+  /* The chart is the answer, so it goes first; the controls sit under it where
+     a phone keyboard and thumb can reach them. Stacked the other way the graph
+     started a full screen below the fold. */
+  .stage { order: -1; }
+  .rail { gap: 1rem; padding: 1rem 0.9rem; }
 }
 
 .stage { display: grid; gap: 0.875rem; }
@@ -474,3 +480,37 @@ select optgroup {
 }
 
 select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing: 0; font-weight: 400; }
+
+/* ---------- legend values (narrow screens) ---------- */
+
+.legend-name { color: inherit; }
+
+.legend-value {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* With values attached, the legend becomes a two-column readout rather than a
+   wrapping row — four labelled numbers read better stacked than strung out. */
+.legend--values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 1rem;
+  width: 100%;
+}
+
+.legend--values .legend-item { gap: 0.4rem; }
+.legend--values .legend-value { margin-left: auto; }
+
+/* ---------- narrow screens: give the chart the width ---------- */
+
+@media (max-width: 560px) {
+  .workspace { padding-inline: 0.5rem; }
+  .panel-head { padding: 0.9rem 0.85rem 0.6rem; }
+  .chart-figure { padding: 0 0.35rem 0.9rem; }
+  .chart-caption { padding-inline: 0.5rem; }
+  .panel-sub { font-size: 0.75rem; }
+  .disclosure summary { padding: 0.7rem 0.85rem; }
+  .disclosure-body { padding-inline: 0.85rem; }
+}
