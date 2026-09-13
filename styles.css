@@ -634,3 +634,46 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 .field-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .field-row label { font-size: 0.6875rem; color: var(--ink-2); }
+
+/* ---------- inline switch ---------- */
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  width: 1.7rem;
+  height: 0.95rem;
+  flex: none;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  translate: 0 -50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--ink-3);
+  transition: translate 0.12s ease, background 0.12s ease;
+}
+
+.switch input:checked { background: rgb(52 229 161 / 0.2); border-color: var(--accent); }
+.switch input:checked::after { translate: 0.75rem -50%; background: var(--accent); }
+.switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch:hover { color: var(--ink); }

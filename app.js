@@ -23,9 +23,14 @@ const SERIES = [
 
 const PAID_IN = { key: "paidIn", label: "Paid in", color: "#7d8a8d" };
 
+/**
+ * Only currencies with a usable consumer price index, so "today's money" works
+ * everywhere rather than being unavailable in half the list. That rules out JPY,
+ * CAD, AUD, NZD and SGD, for which no free monthly index was reachable.
+ */
 const CURRENCIES = {
-  USD: "$", EUR: "€", GBP: "£", CHF: "CHF", JPY: "¥", CAD: "C$",
-  AUD: "A$", SEK: "kr", NOK: "kr", DKK: "kr", PLN: "zł", NZD: "NZ$", SGD: "S$",
+  USD: "$", EUR: "€", GBP: "£", CHF: "CHF",
+  SEK: "kr", NOK: "kr", DKK: "kr", PLN: "zł",
 };
 
 const ZONE_CURRENCY = {
@@ -299,6 +304,7 @@ svg.addEventListener("pointerleave", hideCursor);
 const ui = {
   instrument: document.getElementById("instrument"),
   currency: document.getElementById("currency"),
+  realTerms: document.getElementById("real-terms"),
   plan: document.getElementById("plan"),
   addEvent: document.getElementById("add-event"),
   simplePlan: document.getElementById("simple-plan"),
@@ -344,6 +350,7 @@ let nextEventId = 2;
  * rather than what is computed.
  */
 let proMode = false;
+let lastInstrumentId = null;
 
 let monthlyOut = false;
 
@@ -477,6 +484,7 @@ function readInputs() {
   return {
     instrumentId: ui.instrument.value,
     currency: ui.currency.value,
+    real: ui.realTerms.checked,
     years: Math.max(0, Math.trunc(Number(ui.years.value) || 0)),
     months: Math.max(0, Math.trunc(Number(ui.months.value) || 0)),
   };
@@ -583,6 +591,11 @@ function renderAssumptions(series, result, { instrument, currency, horizon, long
   if (instrument.grossOfTax) {
     warnings.push(`${instrument.name} reinvests dividends before withholding tax. A fund actually receives them after it, which historically costs roughly 0.5–0.7 percentage points a year — so these lines sit a little above what a real tracker would have returned.`);
   }
+  if (series.real) {
+    warnings.push(
+      `Every figure is in the purchasing power of the month its own plan began, so windows are comparable with each other. Consumer price data starts later than the market data, which is why the history above is shorter than this series otherwise offers.`,
+    );
+  }
   if (series.converted) {
     warnings.push(`Prices are converted from ${instrument.currency} to ${currency} at each period's exchange rate, so the result includes currency movement. History starts where the exchange-rate series does.`);
   }
@@ -620,6 +633,7 @@ function renderAssumptions(series, result, { instrument, currency, horizon, long
         : !instrument.adjusted ? "Price return (dividends excluded)"
         : instrument.grossOfTax ? "Total return, gross of dividend withholding tax"
         : "Total return, net of dividend withholding tax"}</dd>` +
+    `<dt>Money</dt><dd>${series.real ? "Real — deflated to the purchasing power of each plan's first month" : "Nominal — not adjusted for inflation"}</dd>` +
     `<dt>History used</dt><dd>${keyLabel(series.keys[0])} – ${keyLabel(series.keys.at(-1))} · ${series.returns.length.toLocaleString()} observations</dd>` +
     `<dt>Start dates tested</dt><dd>${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)}, one per start date</dd>` +
     `<dt>Buying</dt><dd>Every month, at each month-end observation</dd>` +
@@ -673,6 +687,20 @@ function render() {
   ui.instrument.value = instrument.id;
   ui.instrumentHint.textContent = instrument.detail;
 
+  // Ten years of Bitcoin is 25 overlapping windows that all begin in its first
+  // two years, and every one of them multiplied — worst case 9.7x. That is a
+  // property of when the data starts, not of the asset. Three years gives 109
+  // windows and a worst case that loses money, which is the truer picture.
+  if (instrument.id !== lastInstrumentId) {
+    lastInstrumentId = instrument.id;
+    if (instrument.assetClass === "crypto" && input.years > 3) {
+      ui.years.value = 3;
+      ui.months.value = 0;
+      input.years = 3;
+      input.months = 0;
+    }
+  }
+
   const symbol = CURRENCIES[input.currency] ?? input.currency;
   const monthlyAmount = Math.abs(Number(ui.monthly.value) || 0);
   ui.initialSymbol.textContent = symbol;
@@ -680,9 +708,9 @@ function render() {
   ui.monthly.closest(".money-input").classList.toggle("is-negative", monthlyOut && monthlyAmount > 0);
   ui.monthly.closest(".money-input").classList.toggle("is-positive", !monthlyOut && monthlyAmount > 0);
 
-  const cacheKey = `${instrument.id}|${input.currency}`;
+  const cacheKey = `${instrument.id}|${input.currency}|${input.real}`;
   if (seriesCache?.key !== cacheKey) {
-    seriesCache = { key: cacheKey, series: buildSeries(data, instrument, input.currency) };
+    seriesCache = { key: cacheKey, series: buildSeries(data, instrument, input.currency, input.real) };
   }
   const series = seriesCache.series;
 
@@ -757,7 +785,7 @@ async function init() {
     plan.push({ id: nextEventId++, amount: 0, cadence: "once", from: 0, to: null });
     render();
   });
-  for (const control of [ui.instrument, ui.currency, ui.years, ui.months]) {
+  for (const control of [ui.instrument, ui.currency, ui.realTerms, ui.years, ui.months]) {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);

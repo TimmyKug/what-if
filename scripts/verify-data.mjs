@@ -33,7 +33,8 @@ const REQUIRED = [
  * it is a Tuesday. Ether really has moved 78% in a month and fallen 42% in a day.
  */
 const IMPLAUSIBLE = { equity: 0.6, crypto: 2.5 };
-const CURRENCIES = ["EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK", "PLN", "NZD", "SGD"];
+const CURRENCIES = ["EUR", "GBP", "CHF", "SEK", "NOK", "DKK", "PLN"];
+const CPI_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "SEK", "NOK", "DKK", "PLN"];
 
 /**
  * Prices are stored to six significant figures and providers re-adjust history
@@ -97,9 +98,11 @@ function structure(file, data) {
     ok(`${label}: ${keys.length} observations, ${keys[0]}–${keys.at(-1)}`);
   }
 
-  const fx = data.fx;
-  const missingFx = CURRENCIES.filter((c) => !fx[c]);
+  const missingFx = CURRENCIES.filter((c) => !data.fx[c]);
   check(missingFx.length === 0, `every currency has rates${missingFx.length ? ` (missing ${missingFx.join(", ")})` : ""}`);
+
+  const missingCpi = CPI_CURRENCIES.filter((c) => !data.cpi?.[c]?.months?.length);
+  check(missingCpi.length === 0, `every currency has a price index${missingCpi.length ? ` (missing ${missingCpi.join(", ")})` : ""}`);
 }
 
 /**

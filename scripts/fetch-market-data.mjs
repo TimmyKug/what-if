@@ -100,7 +100,7 @@ const INSTRUMENTS = [
 ];
 
 // USD per 1 unit of the currency. USD itself is the numeraire and needs no series.
-const FX = ["EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK", "PLN", "NZD", "SGD"];
+const FX = ["EUR", "GBP", "CHF", "SEK", "NOK", "DKK", "PLN"];
 
 /**
  * The Fama/French research factors. These are monthly *returns*, not prices, so
@@ -206,7 +206,7 @@ const MSCI_INDICES = [
   },
 ];
 
-const MSCI_CURRENCIES = ["USD", "EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK", "NZD", "SGD"];
+const MSCI_CURRENCIES = ["USD", "EUR", "GBP", "CHF", "SEK", "NOK", "DKK"];
 
 async function msciLevels(code, currency) {
   const url =
@@ -323,6 +323,88 @@ async function eurostatRates() {
   return fx;
 }
 
+/**
+ * Consumer price indices, so results can be shown in the purchasing power of the
+ * month a plan started rather than in nominal money.
+ *
+ * Eurostat's HICP is the only free source reachable without a key that covers
+ * several currencies on one calendar; the OECD's is behind a bot check. It costs
+ * two things, both of which the app states rather than hides: it begins in 1996,
+ * and it has no series for JPY, CAD, AUD, NZD or SGD.
+ */
+const CPI_GEO = { EUR: "EA", CHF: "CH", SEK: "SE", NOK: "NO", DKK: "DK", PLN: "PL" };
+
+/** US CPI-U from the BLS, which unlike Eurostat's US series is kept current. */
+async function blsPrices() {
+  const out = new Map();
+  for (const [from, to] of [[1996, 2005], [2006, 2015], [2016, 2026]]) {
+    const url = `https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SA0?startyear=${from}&endyear=${to}`;
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+    if (!res.ok) throw new Error(`BLS ${from}-${to}: HTTP ${res.status}`);
+    const body = await res.json();
+    if (body.status !== "REQUEST_SUCCEEDED") throw new Error(`BLS ${from}-${to}: ${body.message}`);
+    for (const row of body.Results.series[0].data) {
+      if (!/^M\d\d$/.test(row.period)) continue; // M13 is the annual average
+      out.set(`${row.year}-${row.period.slice(1)}`, Number(row.value));
+    }
+  }
+  const months = [...out.keys()].sort();
+  return { months, values: months.map((m) => round(out.get(m))) };
+}
+
+/** UK CPI from the ONS, since Eurostat's UK series stops in 2020. */
+async function onsPrices() {
+  const url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23";
+  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) throw new Error(`ONS: HTTP ${res.status}`);
+  const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  const out = new Map();
+  for (const line of (await res.text()).split(/\r?\n/)) {
+    const m = line.match(/^"(\d{4}) ([A-Z]{3})","([\d.]+)"/);
+    if (!m) continue;
+    const month = MONTHS.indexOf(m[2]);
+    if (month < 0) continue;
+    out.set(`${m[1]}-${String(month + 1).padStart(2, "0")}`, Number(m[3]));
+  }
+  const months = [...out.keys()].sort();
+  if (!months.length) throw new Error("ONS: no monthly rows parsed");
+  return { months, values: months.map((m) => round(out.get(m))) };
+}
+
+async function eurostatPrices() {
+  const url =
+    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_midx" +
+    "?format=JSON&unit=I15&coicop=CP00&lang=en" +
+    Object.values(CPI_GEO).map((g) => `&geo=${g}`).join("");
+  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) throw new Error(`Eurostat HICP: HTTP ${res.status}`);
+  const body = await res.json();
+
+  const geoIndex = body.dimension.geo.category.index;
+  const timeIndex = body.dimension.time.category.index;
+  const geoAt = Object.fromEntries(Object.entries(geoIndex).map(([k, v]) => [v, k]));
+  const timeAt = Object.fromEntries(Object.entries(timeIndex).map(([k, v]) => [v, k]));
+  const geoAxis = body.id.indexOf("geo");
+  const timeAxis = body.id.indexOf("time");
+
+  const byGeo = {};
+  for (const [key, value] of Object.entries(body.value)) {
+    let rest = Number(key);
+    const coords = [];
+    for (let i = body.size.length - 1; i >= 0; i--) { coords[i] = rest % body.size[i]; rest = Math.floor(rest / body.size[i]); }
+    (byGeo[geoAt[coords[geoAxis]]] ??= new Map()).set(timeAt[coords[timeAxis]], value);
+  }
+
+  const cpi = {};
+  for (const [currency, geo] of Object.entries(CPI_GEO)) {
+    const table = byGeo[geo];
+    if (!table) throw new Error(`Eurostat HICP: no series for ${geo}`);
+    const months = [...table.keys()].filter((m) => table.get(m) != null).sort();
+    cpi[currency] = { months, values: months.map((m) => round(table.get(m))) };
+  }
+  return cpi;
+}
+
 async function main() {
   const instruments = [];
   for (const spec of INSTRUMENTS) {
@@ -378,9 +460,16 @@ async function main() {
     console.log(`${`${code}/USD`.padEnd(18)} ${series.months[0]} → ${series.months.at(-1)}  ${series.months.length} months`);
   }
 
+  const cpi = await eurostatPrices();
+  cpi.USD = await blsPrices();
+  cpi.GBP = await onsPrices();
+  for (const [code, series] of Object.entries(cpi)) {
+    console.log(`${`CPI ${code}`.padEnd(18)} ${series.months[0]} → ${series.months.at(-1)}  ${series.months.length} months`);
+  }
+
   await writeFile(
     OUT,
-    JSON.stringify({ fetchedAt: new Date().toISOString(), source: "Yahoo Finance", instruments, fx }, null, 1),
+    JSON.stringify({ fetchedAt: new Date().toISOString(), source: "Yahoo Finance", instruments, fx, cpi }, null, 1),
   );
   console.log(`\nwrote ${OUT}`);
 }

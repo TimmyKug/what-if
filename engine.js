@@ -13,11 +13,12 @@
 function normalise(data) {
   const toKey = (m) => Number(m.replace("-", ""));
   const instruments = data.instruments.map((i) => ({ ...i, keys: i.months.map(toKey) }));
+  const toTable = (table) => ({ keys: table.months.map(toKey), values: table.values });
   const fx = {};
-  for (const [code, table] of Object.entries(data.fx)) {
-    fx[code] = { keys: table.months.map(toKey), values: table.values };
-  }
-  return { ...data, instruments, fx };
+  for (const [code, table] of Object.entries(data.fx)) fx[code] = toTable(table);
+  const cpi = {};
+  for (const [code, table] of Object.entries(data.cpi ?? {})) cpi[code] = toTable(table);
+  return { ...data, instruments, fx, cpi };
 }
 
 const keyYear = (k) => Math.floor(k / 100);
@@ -68,17 +69,12 @@ function ratesFor(fx, code, keys) {
  * The instrument's price history expressed in `currency`, trimmed to where
  * every input exists.
  */
-function buildSeries(data, instrument, currency) {
+function buildSeries(data, instrument, currency, real = false) {
   const denominated = instrument.byCurrency?.[currency];
   if (denominated) {
     const [from, to] = longestRun(instrument.keys);
-    const keys = instrument.keys.slice(from, to);
-    const prices = denominated.slice(from, to);
-    return {
-      keys,
-      returns: prices.slice(1).map((p, i) => p / prices[i] - 1),
-      converted: false, denominated: true,
-    };
+    return withPrices(data, instrument.keys.slice(from, to), denominated.slice(from, to), currency, real,
+      { converted: false, denominated: true });
   }
 
   const native = ratesFor(data.fx, instrument.currency, instrument.keys);
@@ -93,16 +89,34 @@ function buildSeries(data, instrument, currency) {
   });
 
   const [from, to] = longestRun(keys);
-  const kept = keys.slice(from, to);
-  const keptPrices = prices.slice(from, to);
+  return withPrices(data, keys.slice(from, to), prices.slice(from, to), currency, real,
+    { converted: instrument.currency !== currency, denominated: false });
+}
 
+/**
+ * Finishes a series, attaching the price index when results are wanted in real
+ * terms. Asking for real terms trims the history to where the index exists —
+ * the same rule as an exchange rate, for the same reason.
+ */
+function withPrices(data, keys, prices, currency, real, flags) {
+  let cpi = null;
+  if (real) {
+    const levels = ratesFor(cpiTable(data, currency), "CPI", keys);
+    const first = levels.findIndex((v) => v != null);
+    if (first < 0) return { keys: [], returns: [], cpi: null, real: false, ...flags };
+    keys = keys.slice(first);
+    prices = prices.slice(first);
+    cpi = levels.slice(first);
+  }
   return {
-    keys: kept,
-    returns: keptPrices.slice(1).map((p, i) => p / keptPrices[i] - 1),
-    converted: instrument.currency !== currency,
-    denominated: false,
+    keys, cpi, real: Boolean(cpi),
+    returns: prices.slice(1).map((p, i) => p / prices[i] - 1),
+    ...flags,
   };
 }
+
+/** Wraps a currency's price index so `ratesFor` can forward-fill it. */
+const cpiTable = (data, currency) => (data.cpi?.[currency] ? { CPI: data.cpi[currency] } : {});
 
 /* ------------------------------------------------------------------ engine */
 
@@ -122,13 +136,18 @@ function buildSeries(data, instrument, currency) {
  * Within a month the return is applied first and the cash flow second, so money
  * never earns the return of the month it arrives in.
  *
+ * With a price index, every figure is deflated to the purchasing power of the
+ * month its own window began. That is what makes windows comparable: a euro in
+ * 1998 and a euro in 2015 are not the same euro, and a nominal chart quietly
+ * pretends they are.
+ *
  * A withdrawal larger than the balance takes only what is there. Money that was
  * never in the portfolio cannot leave it, so the shortfall is not counted as paid
  * out either — otherwise a plan that drains an empty account would report having
  * withdrawn a fortune from it.
  */
 function runScenario(series, { steps, schedule }) {
-  const { returns, keys } = series;
+  const { returns, keys, cpi } = series;
   const windows = returns.length - steps + 1;
   if (windows < 1 || steps < 1) return null;
 
@@ -140,6 +159,7 @@ function runScenario(series, { steps, schedule }) {
   const high = new Float64Array(steps + 1).fill(-Infinity);
 
   for (let s = 0; s < windows; s++) {
+    const base = cpi ? cpi[s] : 1;
     let balance = schedule[0];
     let paid = schedule[0];
     let depleted = 0;
@@ -154,11 +174,12 @@ function runScenario(series, { steps, schedule }) {
       if (flow !== schedule[t]) depleted = 1;
       balance += flow;
       paid += flow;
-      sum[t] += balance; paidSum[t] += paid;
-      if (balance < low[t]) low[t] = balance;
-      if (balance > high[t]) high[t] = balance;
+      const worth = cpi ? base / cpi[s + t] : 1;
+      sum[t] += balance * worth; paidSum[t] += paid * worth;
+      if (balance * worth < low[t]) low[t] = balance * worth;
+      if (balance * worth > high[t]) high[t] = balance * worth;
     }
-    finals[s] = balance;
+    finals[s] = cpi ? balance * base / cpi[s + steps] : balance;
     depletedIn[s] = depleted;
   }
 
@@ -168,6 +189,7 @@ function runScenario(series, { steps, schedule }) {
   const replay = (start) => {
     const path = new Array(steps + 1);
     const paidIn = new Array(steps + 1);
+    const base = cpi ? cpi[start] : 1;
     let balance = schedule[0], paid = schedule[0], depletedAt = null;
     path[0] = balance; paidIn[0] = paid;
     for (let t = 1; t <= steps; t++) {
@@ -177,7 +199,8 @@ function runScenario(series, { steps, schedule }) {
       if (flow !== schedule[t]) depletedAt ??= t;
       balance += flow;
       paid += flow;
-      path[t] = balance; paidIn[t] = paid;
+      const worth = cpi ? base / cpi[start + t] : 1;
+      path[t] = balance * worth; paidIn[t] = paid * worth;
     }
     return { path, paidIn, depletedAt, startKey: keys[start], endKey: keys[start + steps] };
   };

@@ -72,6 +72,22 @@ check("the envelope contains every drawn path",
   v.paths.best.every((b, t) => b <= v.envelope.high[t] + 1e-9 && b >= v.envelope.low[t] - 1e-9));
 check("window count is right", v.windows === 3);
 
+// Real terms: a flat price index must change nothing, and a rising one must bite.
+const priced = { keys: [1, 2, 3, 4], returns: [0, 0, 0] };
+const money = (levels) => runScenario({ ...priced, cpi: levels }, { steps: 3, schedule: [300, 0, 0, 0] });
+check("a flat price index leaves figures alone", money([100, 100, 100, 100]).paths.median.at(-1) === 300);
+check("a doubled price level halves what money is worth", money([100, 100, 100, 200]).paths.median.at(-1) === 150);
+// Two windows over a price level that doubles early: the first window lives
+// through the doubling, the second starts after it and should not be charged for it.
+const twoWindows = runScenario(
+  { keys: [1, 2, 3, 4, 5], returns: [0, 0, 0, 0], cpi: [50, 100, 100, 100, 100] },
+  { steps: 3, schedule: [300, 0, 0, 0] },
+);
+check("deflation is relative to each window's own start",
+  twoWindows.paths.worst.at(-1) === 150 && twoWindows.paths.best.at(-1) === 300,
+  `${twoWindows.paths.worst.at(-1)} and ${twoWindows.paths.best.at(-1)}`);
+check("paid-in is deflated too", money([100, 100, 100, 200]).paidIn.at(-1) === 150);
+
 {
   const label = "monthly";
   console.log(`\n${label} dataset`);

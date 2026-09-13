@@ -22,7 +22,7 @@ The gap between those rows is the thing worth knowing, and it is the only thing 
 
 > Educational backtest of historical data.
 > Not financial advice, not a forecast.
-> Figures are nominal and exclude tax, trading fees and inflation.
+> Figures exclude tax and trading fees.
 
 ## Why it exists
 
@@ -75,6 +75,20 @@ Everything is committed to this repository, so the app makes **no network calls 
 | S&P 500 | market feed | total return | 1988-01 | 345 |
 | US Total Market | market feed | total return | 1992-04 | 294 |
 | Bitcoin · Ethereum | market feed | price (none exist) | 2014-09 · 2017-11 | 25 · 0 |
+
+Selecting a crypto series shortens the horizon to three years, because ten years of Bitcoin is 25 overlapping windows that all begin in its first two years and every one of them multiplied — a worst case of 9.7x.
+That is a property of when the data starts, not of the asset.
+Three years gives 109 windows and a worst case that loses money.
+
+**Show in today's money** deflates every figure to the purchasing power of the month its own plan began, which is what makes windows comparable: a euro in 1998 and a euro in 2015 are not the same euro.
+It is worth turning on.
+The same €1,000-a-month decade that ends at €346,205 nominally ends at €216,810 in real terms — and the money paid in falls from €120,000 to €99,918, because a euro paid in year ten buys less than one paid in year one.
+
+Price indices come from Eurostat's HICP, the US Bureau of Labor Statistics, and the UK Office for National Statistics.
+Turning it on shortens the history, since price data starts later than the market data.
+
+The currency list is limited to the eight with a usable monthly price index, so the toggle works everywhere rather than being unavailable in half the list.
+JPY, CAD, AUD, NZD and SGD are absent for that reason: no free monthly index was reachable for them.
 
 Exchange rates are Eurostat's `ert_bil_eur_m` at end-of-period, a continuous euro/ECU series back to **1971**.
 The euro replaced the ECU 1:1 in 1999, so it spans that boundary; every currency offered reaches past 1990 except SGD.
