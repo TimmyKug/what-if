@@ -376,8 +376,6 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   font-variant-numeric: tabular-nums;
 }
 
-.card-note { margin-top: 3px; font-size: 0.7188rem; color: var(--ink-3); }
-.card-note strong { color: var(--ink-2); font-weight: 500; }
 .gain-positive { color: var(--accent); }
 .gain-negative { color: #e86054; }
 

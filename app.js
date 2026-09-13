@@ -368,23 +368,16 @@ function renderLegend() {
   }));
 }
 
-function renderCards(result, { initial, contribution, cadence, years }) {
-  const paidIn = result.paidIn.at(-1);
-  const cards = SERIES.map((s) => {
-    const final = result.paths[s.key].at(-1);
-    const gain = final - paidIn;
-    const pick = result.picks[s.key];
-    return {
-      tint: s.color, label: s.label, value: money.format(final),
-      note: `<strong class="${gain >= 0 ? "gain-positive" : "gain-negative"}">${change(gain, paidIn)}</strong>` +
-        ` vs paid in · ${pick ? `started ${keyLabel(pick.startKey, result.daily)}` : `mean of ${result.windows.toLocaleString()} starts`}`,
-    };
-  });
-
-  cards.push({
-    tint: PAID_IN.color, label: "Paid in", value: money.format(paidIn),
-    note: `${money.format(initial)} at the start · ${money.format(contribution)} every ${CADENCE_WORD[cadence]} for ${yearsLabel(years)}`,
-  });
+/**
+ * Headline figures only. The change against paid-in and each window's start date
+ * live in the distribution table, and the plan itself is in the rail, so
+ * repeating them here was the same numbers three times over.
+ */
+function renderCards(result) {
+  const cards = [
+    ...SERIES.map((s) => ({ tint: s.color, label: s.label, value: result.paths[s.key].at(-1) })),
+    { tint: PAID_IN.color, label: "Paid in", value: result.paidIn.at(-1) },
+  ];
 
   ui.cards.replaceChildren(...cards.map((card) => {
     const node = document.createElement("div");
@@ -392,8 +385,7 @@ function renderCards(result, { initial, contribution, cadence, years }) {
     node.style.setProperty("--tint", card.tint);
     node.innerHTML =
       `<div class="card-label">${card.label}</div>` +
-      `<div class="card-value">${card.value}</div>` +
-      `<div class="card-note">${card.note}</div>`;
+      `<div class="card-value">${money.format(card.value)}</div>`;
     return node;
   }));
 }
@@ -599,7 +591,7 @@ async function render() {
   }
 
   drawChart(result, years);
-  renderCards(result, { ...input, years });
+  renderCards(result);
   renderTable(result);
   renderAssumptions(series, result, { ...input, instrument, years, longer: longerHistory(instrument, input, steps, result) });
 }
