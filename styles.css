@@ -717,3 +717,47 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 .saved-item .saved-remove:hover { color: #e86054; }
 
 .saved-empty { font-size: 0.6875rem; color: var(--ink-3); }
+
+/* ---------- inline save row ---------- */
+
+/* An inline field instead of prompt(), which arrives wearing the browser's
+   chrome and announcing the hostname. */
+.save-row { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem; }
+
+.save-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  background: var(--panel-raised);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.save-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.save-confirm {
+  padding: 0.4rem 0.6rem;
+  background: rgb(52 229 161 / 0.16);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.save-confirm:hover { background: rgb(52 229 161 / 0.26); }
+
+.save-cancel {
+  padding: 0.25rem;
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.save-cancel:hover { color: var(--ink); }

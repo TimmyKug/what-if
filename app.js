@@ -317,6 +317,10 @@ const ui = {
   saveScenario: document.getElementById("save-scenario"),
   savedList: document.getElementById("saved-list"),
   savedHint: document.getElementById("saved-hint"),
+  saveRow: document.getElementById("save-row"),
+  saveName: document.getElementById("save-name"),
+  saveConfirm: document.getElementById("save-confirm"),
+  saveCancel: document.getElementById("save-cancel"),
   plan: document.getElementById("plan"),
   addEvent: document.getElementById("add-event"),
   simplePlan: document.getElementById("simple-plan"),
@@ -964,19 +968,42 @@ async function init() {
       render();
     });
   }
-  ui.saveScenario.addEventListener("click", () => {
-    const name = (prompt("Name this scenario", suggestName()) ?? "").trim();
-    if (!name) return;
+  const openSaveRow = () => {
+    ui.saveRow.hidden = false;
+    ui.saveScenario.hidden = true;
+    ui.saveName.value = suggestName();
+    ui.saveName.focus();
+    ui.saveName.select();
+  };
+  const closeSaveRow = () => {
+    ui.saveRow.hidden = true;
+    ui.saveScenario.hidden = false;
+  };
+  const commitSave = () => {
+    const name = ui.saveName.value.trim();
+    if (!name) { ui.saveName.focus(); return; }
     const scenarios = readSaved().filter((s) => s.name !== name);
     scenarios.push({ name, query: encodeState(readInputs()) });
     const stored = writeSaved(scenarios);
-    const first = stored && !localStorage.getItem(NOTICE_KEY);
-    if (first) localStorage.setItem(NOTICE_KEY, "1");
+    let first = false;
+    try {
+      first = stored && !localStorage.getItem(NOTICE_KEY);
+      if (first) localStorage.setItem(NOTICE_KEY, "1");
+    } catch { /* storage refused; the message below covers it */ }
+    closeSaveRow();
     renderSaved(!stored
       ? "This browser refused to store it — private mode, most likely. The address bar still holds the scenario."
       : first
         ? "Saved in this browser's local storage, on this device only. Nothing is sent anywhere, and you can delete it with the ✕."
         : undefined);
+  };
+
+  ui.saveScenario.addEventListener("click", openSaveRow);
+  ui.saveConfirm.addEventListener("click", commitSave);
+  ui.saveCancel.addEventListener("click", closeSaveRow);
+  ui.saveName.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); commitSave(); }
+    if (e.key === "Escape") { e.preventDefault(); closeSaveRow(); }
   });
   renderSaved();
 

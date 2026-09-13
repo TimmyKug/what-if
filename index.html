@@ -98,6 +98,11 @@
         <span class="field-label">Saved scenarios</span>
         <button type="button" id="save-scenario" class="mode-toggle">Save this one</button>
       </div>
+      <div class="save-row" id="save-row" hidden>
+        <input id="save-name" type="text" maxlength="60" placeholder="Name this scenario" aria-label="Scenario name" />
+        <button type="button" id="save-confirm" class="save-confirm" aria-label="Save">Save</button>
+        <button type="button" id="save-cancel" class="save-cancel" aria-label="Cancel">✕</button>
+      </div>
       <div id="saved-list" class="saved-list"></div>
       <p class="hint" id="saved-hint"></p>
     </div>
