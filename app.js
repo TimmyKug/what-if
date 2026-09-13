@@ -336,7 +336,7 @@ function renderInstrumentOptions(data) {
       seen.add(id);
       const year = String(instrument.keys[0]).slice(0, 4);
       group.append(Object.assign(document.createElement("option"), {
-        value: id, textContent: `${instrument.name} · from ${year}`,
+        value: id, textContent: `${instrument.name} · ${year}`,
       }));
     }
     return group;
@@ -348,7 +348,7 @@ function renderInstrumentOptions(data) {
     const group = document.createElement("optgroup");
     group.label = "Other";
     group.append(...rest.map((i) => Object.assign(document.createElement("option"), {
-      value: i.id, textContent: `${i.name} · from ${String(i.keys[0]).slice(0, 4)}`,
+      value: i.id, textContent: `${i.name} · ${String(i.keys[0]).slice(0, 4)}`,
     })));
     groups.push(group);
   }
@@ -581,9 +581,6 @@ async function render() {
   ui.chartSub.textContent =
     `${yearsLabel(years)} of ${instrument.name} in ${input.currency}, buying every ${CADENCE_WORD[input.cadence]}, ` +
     `replayed from all ${result.windows.toLocaleString()} start dates in the data.`;
-  ui.chartCaption.textContent =
-    `Best and worst are single real timelines — the start dates that ended highest and lowest. ` +
-    `Average is the mean of all ${result.windows.toLocaleString()} timelines, and the shaded area covers every one of them.`;
   ui.chartDesc.textContent =
     `Line chart of portfolio value over ${yearsLabel(years)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
     `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))}, ` +

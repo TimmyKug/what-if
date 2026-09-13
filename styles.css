@@ -2,6 +2,11 @@
    The look is deliberately single-mode: the near-black canvas is the design,
    so there is no light variant to swap in. */
 
+html {
+  /* Every length in this file is in rem, so this one value scales the page. */
+  font-size: 18px;
+}
+
 :root {
   color-scheme: dark;
 
@@ -24,8 +29,8 @@
   --s-worst: #c58203;
   --s-paid: #7d8a8d;
 
-  --radius: 14px;
-  --radius-sm: 9px;
+  --radius: 0.875rem;
+  --radius-sm: 0.5625rem;
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
@@ -36,7 +41,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 14px/1.5 var(--font);
+  font: 400 0.875rem/1.5 var(--font);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -45,17 +50,17 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   flex-wrap: wrap;
-  padding: 14px 20px;
+  padding: 0.875rem 1.25rem;
   border-bottom: 1px solid var(--line);
 }
 
-.brand { display: flex; align-items: center; gap: 9px; }
+.brand { display: flex; align-items: center; gap: 0.5625rem; }
 
 .brand-mark {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 4px rgb(52 229 161 / 0.12);
@@ -63,13 +68,13 @@ body {
 
 .brand-name { font-weight: 600; letter-spacing: -0.01em; }
 
-.tagline { margin: 0; color: var(--ink-3); font-size: 13px; }
+.tagline { margin: 0; color: var(--ink-3); font-size: 0.8125rem; }
 
 .data-status {
   margin-left: auto;
   min-width: 0;
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -77,17 +82,17 @@ body {
 
 .workspace {
   display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 19.5rem minmax(0, 1fr);
+  gap: 1.125rem;
   align-items: start;
-  padding: 18px 20px 40px;
+  padding: 1.125rem 1.25rem 2.5rem;
 }
 
 @media (max-width: 900px) {
-  .workspace { grid-template-columns: minmax(0, 1fr); padding-inline: 16px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); padding-inline: 1rem; }
 }
 
-.stage { display: grid; gap: 14px; }
+.stage { display: grid; gap: 0.875rem; }
 
 /* Grid items default to min-width:auto, which lets a wide intrinsic child (the
    chart's viewBox, a long label) push the whole page sideways on a phone. */
@@ -98,10 +103,10 @@ body {
 
 .rail {
   position: sticky;
-  top: 18px;
+  top: 1.125rem;
   display: grid;
-  gap: 18px;
-  padding: 18px 16px;
+  gap: 1.125rem;
+  padding: 1.125rem 1rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -111,27 +116,27 @@ body {
 
 .rail-title {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 
-.field { display: grid; gap: 7px; }
+.field { display: grid; gap: 0.4375rem; }
 
 .field > label {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--ink-2);
 }
 
-.hint { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-3); }
+.hint { margin: 0; font-size: 0.7188rem; line-height: 1.45; color: var(--ink-3); }
 
 select,
 input[type="number"] {
   width: 100%;
-  padding: 9px 10px;
+  padding: 0.5625rem 0.625rem;
   background: var(--panel-raised);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -141,11 +146,11 @@ input[type="number"] {
 
 select {
   appearance: none;
-  padding-right: 30px;
+  padding-right: 1.875rem;
   background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
     linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
-  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
-  background-size: 5px 5px, 5px 5px;
+  background-position: calc(100% - 1rem) 50%, calc(100% - 0.6875rem) 50%;
+  background-size: 0.3125rem 0.3125rem, 0.3125rem 0.3125rem;
   background-repeat: no-repeat;
   cursor: pointer;
 }
@@ -160,17 +165,17 @@ input:focus-visible {
 
 .money-symbol {
   position: absolute;
-  left: 11px;
+  left: 0.6875rem;
   top: 50%;
   translate: 0 -50%;
   color: var(--ink-3);
-  font-size: 13px;
+  font-size: 0.8125rem;
   pointer-events: none;
 }
 
 .money-symbol--plus { color: var(--accent); }
 
-.money-input input { padding-left: 30px; font-variant-numeric: tabular-nums; }
+.money-input input { padding-left: 1.875rem; font-variant-numeric: tabular-nums; }
 
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { opacity: 0.35; }
@@ -185,7 +190,7 @@ input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 20px;
+  height: 1.25rem;
   background: transparent;
   cursor: pointer;
 }
@@ -204,17 +209,17 @@ input[type="range"]::-moz-range-track {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 15px;
-  height: 15px;
-  margin-top: -6px;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  margin-top: -0.375rem;
   border: none;
   border-radius: 50%;
   background: var(--accent);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
+  width: 0.9375rem;
+  height: 0.9375rem;
   border: none;
   border-radius: 50%;
   background: var(--accent);
@@ -225,12 +230,12 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .scale {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 
-.rail-foot { border-top: 1px solid var(--line-soft); padding-top: 14px; }
+.rail-foot { border-top: 1px solid var(--line-soft); padding-top: 0.875rem; }
 
 /* ---------- panels ---------- */
 
@@ -244,28 +249,28 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 1.125rem;
   flex-wrap: wrap;
-  padding: 16px 18px 10px;
+  padding: 1rem 1.125rem 0.625rem;
 }
 
-.panel-title { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.panel-sub { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.panel-title { margin: 0; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
+.panel-sub { margin: 3px 0 0; font-size: 0.7812rem; color: var(--ink-3); }
 
 /* ---------- legend ---------- */
 
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.375rem 0.875rem; }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 0.375rem;
+  font-size: 0.75rem;
   color: var(--ink-2);
 }
 
 .legend-swatch {
-  width: 12px;
+  width: 0.75rem;
   height: 3px;
   border-radius: 2px;
   background: currentColor;
@@ -274,26 +279,26 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 
 .legend-swatch--dashed {
   background: repeating-linear-gradient(
-    to right, currentColor 0 4px, transparent 4px 7px
+    to right, currentColor 0 0.25rem, transparent 0.25rem 0.4375rem
   );
 }
 
 /* ---------- chart ---------- */
 
-.chart-figure { margin: 0; padding: 0 18px 16px; }
+.chart-figure { margin: 0; padding: 0 1.125rem 1rem; }
 
 .chart-host { position: relative; }
 
-#chart { display: block; width: 100%; max-width: 100%; height: clamp(300px, 46vh, 460px); touch-action: pan-y; }
+#chart { display: block; width: 100%; max-width: 100%; height: clamp(18.75rem, 46vh, 28.75rem); touch-action: pan-y; }
 
 .grid-line { stroke: var(--line-soft); stroke-width: 1; shape-rendering: crispEdges; }
 .axis-line { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
-.axis-text { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.axis-text { fill: var(--ink-3); font-size: 0.6875rem; font-variant-numeric: tabular-nums; }
 .axis-text--y { text-anchor: end; }
 
 .series-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .series-band { opacity: 0.1; }
-.series-label { font-size: 11px; font-weight: 600; }
+.series-label { font-size: 0.6875rem; font-weight: 600; }
 
 .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
 .cursor-dot { stroke: var(--panel); stroke-width: 2; }
@@ -301,22 +306,22 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .tooltip {
   position: absolute;
   z-index: 2;
-  min-width: 178px;
-  padding: 10px 11px;
+  min-width: 11.125rem;
+  padding: 0.625rem 0.6875rem;
   background: var(--panel-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   box-shadow: 0 10px 26px rgb(0 0 0 / 0.5);
   pointer-events: none;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .tooltip-head {
-  margin-bottom: 7px;
-  padding-bottom: 6px;
+  margin-bottom: 0.4375rem;
+  padding-bottom: 0.375rem;
   border-bottom: 1px solid var(--line-soft);
   color: var(--ink-2);
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -324,11 +329,11 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .tooltip-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   padding: 2px 0;
 }
 
-.tooltip-row .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.tooltip-row .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; flex: none; }
 .tooltip-row .name { color: var(--ink-2); }
 .tooltip-row .val {
   margin-left: auto;
@@ -337,18 +342,18 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   color: var(--ink);
 }
 
-.chart-caption { margin: 12px 0 0; font-size: 11.5px; color: var(--ink-3); }
+.chart-caption { margin: 0.75rem 0 0; font-size: 0.7188rem; color: var(--ink-3); }
 
 /* ---------- stat cards ---------- */
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.75rem;
 }
 
 .card {
-  padding: 14px 15px;
+  padding: 0.875rem 0.9375rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -358,20 +363,20 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .card-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 0.375rem;
+  font-size: 0.7188rem;
   color: var(--ink-2);
 }
 
 .card-value {
-  margin-top: 6px;
-  font-size: clamp(20px, 2.4vw, 26px);
+  margin-top: 0.375rem;
+  font-size: clamp(1.25rem, 2.4vw, 1.625rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
-.card-note { margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+.card-note { margin-top: 3px; font-size: 0.7188rem; color: var(--ink-3); }
 .card-note strong { color: var(--ink-2); font-weight: 500; }
 .gain-positive { color: var(--accent); }
 .gain-negative { color: #e86054; }
@@ -379,9 +384,9 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 /* ---------- disclosures ---------- */
 
 .disclosure summary {
-  padding: 13px 18px;
+  padding: 0.8125rem 1.125rem;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--ink-2);
   list-style: none;
@@ -392,7 +397,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .disclosure summary::before {
   content: "›";
   display: inline-block;
-  margin-right: 8px;
+  margin-right: 0.5rem;
   color: var(--ink-3);
   transition: rotate 0.15s ease;
 }
@@ -400,31 +405,31 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .disclosure[open] summary::before { rotate: 90deg; }
 .disclosure summary:hover { color: var(--ink); }
 
-.disclosure-body { padding: 0 18px 16px; border-top: 1px solid var(--line-soft); padding-top: 14px; }
+.disclosure-body { padding: 0 1.125rem 1rem; border-top: 1px solid var(--line-soft); padding-top: 0.875rem; }
 
-.kv { display: grid; grid-template-columns: minmax(140px, auto) 1fr; gap: 7px 18px; font-size: 12.5px; }
+.kv { display: grid; grid-template-columns: minmax(8.75rem, auto) 1fr; gap: 0.4375rem 1.125rem; font-size: 0.7812rem; }
 .kv dt { color: var(--ink-3); }
 .kv dd { margin: 0; color: var(--ink-2); }
 
 .warn {
-  margin-top: 14px;
-  padding: 10px 12px;
+  margin-top: 0.875rem;
+  padding: 0.625rem 0.75rem;
   border-left: 2px solid var(--s-worst);
   background: rgb(197 130 3 / 0.07);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   color: var(--ink-2);
 }
 
 /* ---------- table ---------- */
 
-.table-scroll { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+.table-scroll { overflow-x: auto; max-height: 21.25rem; overflow-y: auto; }
 
-.windows { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.windows { width: 100%; border-collapse: collapse; font-size: 0.7812rem; }
 
 .windows th,
 .windows td {
-  padding: 7px 12px 7px 0;
+  padding: 0.4375rem 0.75rem 0.4375rem 0;
   text-align: left;
   border-bottom: 1px solid var(--line-soft);
   white-space: nowrap;
@@ -436,7 +441,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   background: var(--panel);
   color: var(--ink-3);
   font-weight: 500;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -447,23 +452,23 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 
 .mark-tag {
   display: inline-block;
-  margin-left: 7px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 10px;
+  margin-left: 0.4375rem;
+  padding: 1px 0.375rem;
+  border-radius: 62.4375rem;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--bg);
 }
 
-.footnote { margin: 2px 2px 0; font-size: 11.5px; line-height: 1.55; color: var(--ink-3); }
+.footnote { margin: 2px 2px 0; font-size: 0.7188rem; line-height: 1.55; color: var(--ink-3); }
 
 /* ---------- inline select (cadence, inside a label) ---------- */
 
 .inline-select {
   width: auto;
-  padding: 1px 20px 1px 5px;
+  padding: 1px 1.25rem 1px 0.3125rem;
   margin-left: 1px;
   background-color: transparent;
   border: none;
@@ -472,7 +477,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   color: var(--ink);
   font: inherit;
   font-weight: 500;
-  background-position: calc(100% - 8px) 55%, calc(100% - 3px) 55%;
+  background-position: calc(100% - 0.5rem) 55%, calc(100% - 0.1875rem) 55%;
 }
 
 .inline-select:hover { border-bottom-color: var(--accent); }
@@ -483,12 +488,12 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 
 .resolution-tag {
   display: inline-block;
-  margin-left: 8px;
-  padding: 1px 7px;
-  border-radius: 999px;
+  margin-left: 0.5rem;
+  padding: 1px 0.4375rem;
+  border-radius: 62.4375rem;
   border: 1px solid var(--line);
   color: var(--ink-3);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   vertical-align: 1px;
@@ -498,10 +503,10 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 select optgroup {
   background: var(--panel);
   color: var(--ink-3);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-style: normal;
   font-weight: 600;
   letter-spacing: 0.05em;
 }
 
-select optgroup option { color: var(--ink); font-size: 14px; letter-spacing: 0; font-weight: 400; }
+select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing: 0; font-weight: 400; }
