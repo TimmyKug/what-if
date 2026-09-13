@@ -21,7 +21,7 @@ if (!candidateDir) {
   process.exit(2);
 }
 
-const FILES = ["market-data.json", "market-data-daily.json"];
+const FILES = ["market-data.json"];
 const REQUIRED = [
   "msci-world", "msci-acwi", "ff-developed", "ff-us",
   "sp500", "us-total-market", "ftse-all-world", "msci-world-etf", "msci-world-index",
@@ -52,7 +52,7 @@ const check = (cond, msg) => (cond ? ok(msg) : fail(msg));
 
 // resolve, not join: a staging directory may be given as an absolute path.
 const read = async (dir, file) => JSON.parse(await readFile(resolve(root, dir, file), "utf8"));
-const keysOf = (i) => i.dates ?? i.months.map((m) => Number(m.replace("-", "")));
+const keysOf = (i) => i.months.map((m) => Number(m.replace("-", "")));
 
 /** Returns keyed by the observation they end on, so two vintages can be compared. */
 function returnsByKey(instrument) {
@@ -97,7 +97,7 @@ function structure(file, data) {
     ok(`${label}: ${keys.length} observations, ${keys[0]}–${keys.at(-1)}`);
   }
 
-  const fx = data.fx.rates ?? data.fx;
+  const fx = data.fx;
   const missingFx = CURRENCIES.filter((c) => !fx[c]);
   check(missingFx.length === 0, `every currency has rates${missingFx.length ? ` (missing ${missingFx.join(", ")})` : ""}`);
 }

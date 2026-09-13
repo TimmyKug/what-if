@@ -45,8 +45,7 @@ Checks and data refresh:
 
 ```sh
 node scripts/check-engine.mjs       # smoke tests for the backtest engine
-node scripts/fetch-market-data.mjs  # monthly history  → data/market-data.json
-node scripts/fetch-daily-data.mjs   # daily history    → data/market-data-daily.json
+node scripts/fetch-market-data.mjs  # market history   → data/market-data.json
 node scripts/verify-data.mjs <dir>  # integrity-check a fetched dataset
 ```
 
@@ -63,10 +62,10 @@ node scripts/verify-data.mjs data-staging data
 `.github/workflows/refresh-data.yml` runs weekly (Mondays 06:00 UTC) and on
 demand. It never writes over the committed data directly:
 
-1. fetch both datasets into `data-staging/`
-2. `verify-data.mjs` checks them, and compares them against what is committed
+1. fetch into `data-staging/`
+2. `verify-data.mjs` checks it, and compares it against what is committed
 3. `check-engine.mjs` runs against the staged copy
-4. only then are the files promoted, re-checked, committed, and deployed
+4. only then is it promoted, re-checked, committed, and deployed
 
 If any step fails the job stops and the repository still holds the last good
 dataset.
@@ -105,34 +104,8 @@ Files:
 | `index.html`, `styles.css` | markup and the dark theme |
 | `engine.js` | pure calendar, currency-conversion and backtest logic (no DOM) |
 | `app.js` | data loading, the SVG chart, and the controls |
-| `data/market-data.json` | committed monthly history (440 KB) |
-| `data/market-data-daily.json` | committed daily history (2.4 MB, ~810 KB gzipped), lazy-loaded |
-| `scripts/` | the two fetch scripts and the engine smoke test |
-
-## Resolution and cadence
-
-Buying **every month** uses the monthly dataset. Buying **every week** or **every
-trading day** needs daily observations, so the app lazy-loads the daily file the
-first time one is selected — it is only fetched if asked for.
-
-The two datasets are not interchangeable, which is why both are kept:
-
-| | Monthly | Daily |
-|---|---|---|
-| Developed Markets, EUR | 313 starts, from 1990-07 | 4,586 starts, from 1999-01 |
-| Exchange rates | Eurostat, from 1971 | ECB reference rates, from 1999 |
-
-Daily conversion needs daily rates, and the ECB's only start in 1999 — so a
-converted series reaches *further back* at monthly resolution while offering far
-more start dates at daily. A natively denominated series has no such trade-off.
-
-More start dates is not more information: they still overlap the same years, so
-they are no more independent. What daily removes is the artefact that every plan
-has to begin on the first of a month, which makes "worst" a property of the
-market rather than of the calendar.
-
-A contribution at weekly or monthly cadence lands on the **first trading day** of
-each period, so a plan never silently skips a weekend or a holiday.
+| `data/market-data.json` | committed monthly history |
+| `scripts/` | fetch, verify and engine-check scripts |
 
 ## What the first screen does
 
@@ -142,14 +115,9 @@ Defaults: **Developed Markets**, currency guessed from the visitor's time zone
 (falling back to their locale), **0** starting amount, **+100 per month**, over
 **10 years**.
 
-The horizon is set as years, months and days rather than a whole number of years.
-The step count is `round(duration_in_years × observations_per_year)`, with
-`observations_per_year` measured from the series itself — the daily files average
-about 261 observations a year rather than 252, because they follow the union of
-developed-market calendars rather than one exchange. A horizon longer than the
-available history is capped at it and the control says so.
-
-Days are disabled against monthly data, where a day cannot mean anything.
+The horizon is set as years and months rather than a whole number of years, so
+18 months or 3 years 6 months are as easy to ask for as a decade. A horizon
+longer than the available history is capped at it and the control says so.
 
 The engine replays that plan once for every historical start month the series is
 long enough to cover, and the chart draws:

@@ -40,16 +40,12 @@
     </div>
 
     <div class="field">
-      <label for="monthly">Buy <select id="cadence" class="inline-select">
-        <option value="monthly">every month</option>
-        <option value="weekly">every week</option>
-        <option value="daily">every trading day</option>
-      </select></label>
+      <label for="monthly">Every month</label>
       <div class="money-input">
         <span class="money-symbol money-symbol--plus" id="monthly-symbol"></span>
         <input id="monthly" type="number" step="10" value="100" inputmode="numeric" />
       </div>
-      <p class="hint" id="cadence-hint">Negative values withdraw instead of paying in.</p>
+      <p class="hint">Negative values withdraw instead of paying in.</p>
     </div>
 
     <fieldset class="field duration-field">
@@ -62,10 +58,6 @@
         <label class="duration-part">
           <input id="months" type="number" min="0" max="11" step="1" value="0" inputmode="numeric" />
           <span>months</span>
-        </label>
-        <label class="duration-part" id="days-part">
-          <input id="days" type="number" min="0" max="30" step="1" value="0" inputmode="numeric" />
-          <span>days</span>
         </label>
       </div>
       <p class="hint" id="horizon-hint"></p>

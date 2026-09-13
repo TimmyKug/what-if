@@ -3,62 +3,36 @@
  * backtest itself. No DOM, so it can be exercised from Node — see
  * `scripts/check-engine.mjs`.
  *
- * Both datasets are normalised to the same shape before anything else runs: a
- * series is an ascending array of integer `keys` (YYYYMM for monthly data,
- * YYYYMMDD for daily) alongside its values. Everything below is written against
- * that, so the engine never needs to know which file it was given.
+ * A series is an ascending array of integer `keys` (YYYYMM) alongside its
+ * values, and everything below is written against that shape.
  */
 
 /* ------------------------------------------------------------------ shapes */
 
-/** Folds either file layout into `{ keys, values }` form. */
+/** Folds the file into `{ keys, values }` form, keys being YYYYMM integers. */
 function normalise(data) {
-  const daily = data.resolution === "daily";
-  const toKey = daily ? (d) => d : (m) => Number(m.replace("-", ""));
-
-  const instruments = data.instruments.map((i) => ({
-    ...i,
-    keys: (daily ? i.dates : i.months).map(toKey),
-  }));
-
-  // Monthly stores its own dates per currency; daily shares one axis.
+  const toKey = (m) => Number(m.replace("-", ""));
+  const instruments = data.instruments.map((i) => ({ ...i, keys: i.months.map(toKey) }));
   const fx = {};
-  if (daily) {
-    for (const [code, values] of Object.entries(data.fx.rates)) {
-      fx[code] = { keys: data.fx.dates, values };
-    }
-  } else {
-    for (const [code, table] of Object.entries(data.fx)) {
-      fx[code] = { keys: table.months.map(toKey), values: table.values };
-    }
+  for (const [code, table] of Object.entries(data.fx)) {
+    fx[code] = { keys: table.months.map(toKey), values: table.values };
   }
-
-  return { ...data, daily, instruments, fx };
+  return { ...data, instruments, fx };
 }
 
-const keyYear = (k, daily) => Math.floor(k / (daily ? 10000 : 100));
-const keyMonth = (k, daily) => (daily ? Math.floor(k / 100) % 100 : k % 100);
-const keyDay = (k) => k % 100;
+const keyYear = (k) => Math.floor(k / 100);
+const keyMonth = (k) => k % 100;
 
-function keyLabel(k, daily) {
-  const y = keyYear(k, daily);
-  const m = keyMonth(k, daily);
-  const date = new Date(Date.UTC(y, m - 1, daily ? keyDay(k) : 1));
-  return date.toLocaleDateString(undefined, daily
-    ? { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }
-    : { month: "short", year: "numeric", timeZone: "UTC" });
-}
-
-/** Days since epoch, used for week boundaries and for measuring a span. */
-function dayNumber(k) {
-  return Math.floor(Date.UTC(keyYear(k, true), keyMonth(k, true) - 1, keyDay(k)) / 86400000);
+function keyLabel(k) {
+  return new Date(Date.UTC(keyYear(k), keyMonth(k) - 1, 1))
+    .toLocaleDateString(undefined, { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 /* ---------------------------------------------------------------- calendar */
 
 /** Longest run of consecutive calendar months, as a `[start, end)` index pair. */
 function longestRun(keys) {
-  const step = (k) => keyYear(k, false) * 12 + keyMonth(k, false);
+  const step = (k) => keyYear(k) * 12 + keyMonth(k);
   let bestStart = 0, bestLen = 0, runStart = 0;
   for (let i = 1; i <= keys.length; i++) {
     const broken = i === keys.length || step(keys[i]) !== step(keys[i - 1]) + 1;
@@ -70,37 +44,6 @@ function longestRun(keys) {
   return [bestStart, bestStart + bestLen];
 }
 
-/**
- * Which observations a contribution lands on.
- *
- * Monthly data pays on every observation. Daily data pays on the first trading
- * day of each period, so a monthly plan buys on the first trading day of the
- * month rather than silently skipping a weekend.
- */
-function contributionDays(keys, cadence, daily) {
-  const flags = new Uint8Array(keys.length).fill(1);
-  if (!daily || cadence === "daily") return flags;
-
-  // Epoch day 0 was a Thursday, so +3 moves the week boundary onto Monday.
-  const bucket = cadence === "weekly"
-    ? (k) => Math.floor((dayNumber(k) + 3) / 7)
-    : (k) => keyYear(k, true) * 12 + keyMonth(k, true);
-
-  let seen = null;
-  keys.forEach((k, i) => {
-    const b = bucket(k);
-    flags[i] = b === seen ? 0 : 1;
-    seen = b;
-  });
-  return flags;
-}
-
-/** Observations per year, measured from the series itself. */
-function observationsPerYear(keys, daily) {
-  if (!daily) return 12;
-  const years = (dayNumber(keys.at(-1)) - dayNumber(keys[0])) / 365.2425;
-  return (keys.length - 1) / years;
-}
 
 /* ------------------------------------------------------- currency handling */
 
@@ -128,11 +71,11 @@ function ratesFor(fx, code, keys) {
 function buildSeries(data, instrument, currency) {
   const denominated = instrument.byCurrency?.[currency];
   if (denominated) {
-    const [from, to] = data.daily ? [0, instrument.keys.length] : longestRun(instrument.keys);
+    const [from, to] = longestRun(instrument.keys);
     const keys = instrument.keys.slice(from, to);
     const prices = denominated.slice(from, to);
     return {
-      keys, daily: data.daily,
+      keys,
       returns: prices.slice(1).map((p, i) => p / prices[i] - 1),
       converted: false, denominated: true,
     };
@@ -149,12 +92,12 @@ function buildSeries(data, instrument, currency) {
     prices.push(instrument.values[i] * (native[i] / display[i]));
   });
 
-  const [from, to] = data.daily ? [0, keys.length] : longestRun(keys);
+  const [from, to] = longestRun(keys);
   const kept = keys.slice(from, to);
   const keptPrices = prices.slice(from, to);
 
   return {
-    keys: kept, daily: data.daily,
+    keys: kept,
     returns: keptPrices.slice(1).map((p, i) => p / keptPrices[i] - 1),
     converted: instrument.currency !== currency,
     denominated: false,
@@ -164,22 +107,19 @@ function buildSeries(data, instrument, currency) {
 /* ------------------------------------------------------------------ engine */
 
 /**
- * Replays the plan once per possible start date.
+ * Replays the plan once per possible start month.
  *
- * Two passes, because at daily resolution there can be tens of thousands of
- * windows and keeping every balance path would run to hundreds of megabytes.
- * The first pass keeps only the final values and the running aggregates; the
- * second replays the three windows actually drawn.
+ * Two passes: the first keeps only the final values and the running aggregates,
+ * the second replays the three windows actually drawn. Cheap here, and it keeps
+ * memory flat in the number of windows rather than growing with it.
  *
- * Within a step the return is applied first and the contribution second, so a
- * contribution never earns the return of the step it arrives in.
+ * Within a month the return is applied first and the contribution second, so a
+ * contribution never earns the return of the month it arrives in.
  */
-function runScenario(series, { steps, initial, contribution, cadence = "monthly" }) {
+function runScenario(series, { steps, initial, contribution }) {
   const { returns, keys } = series;
   const windows = returns.length - steps + 1;
   if (windows < 1 || steps < 1) return null;
-
-  const pays = contributionDays(keys, cadence, series.daily);
 
   const finals = new Float64Array(windows);
   const depletedIn = new Uint8Array(windows);
@@ -199,7 +139,8 @@ function runScenario(series, { steps, initial, contribution, cadence = "monthly"
     for (let t = 1; t <= steps; t++) {
       const i = s + t - 1;
       balance *= 1 + returns[i];
-      if (pays[i]) { balance += contribution; paid += contribution; }
+      balance += contribution;
+      paid += contribution;
       if (balance < 0) { balance = 0; depleted = 1; }
       sum[t] += balance; paidSum[t] += paid;
       if (balance < low[t]) low[t] = balance;
@@ -220,7 +161,8 @@ function runScenario(series, { steps, initial, contribution, cadence = "monthly"
     for (let t = 1; t <= steps; t++) {
       const i = start + t - 1;
       balance *= 1 + returns[i];
-      if (pays[i]) { balance += contribution; paid += contribution; }
+      balance += contribution;
+      paid += contribution;
       if (balance < 0) { balance = 0; depletedAt ??= t; }
       path[t] = balance; paidIn[t] = paid;
     }
@@ -232,7 +174,7 @@ function runScenario(series, { steps, initial, contribution, cadence = "monthly"
   };
 
   return {
-    windows, steps, cadence,
+    windows, steps,
     paths: {
       best: picks.best.path, median: picks.median.path, worst: picks.worst.path,
       average: Array.from(sum, (v) => v / windows),
@@ -246,7 +188,7 @@ function runScenario(series, { steps, initial, contribution, cadence = "monthly"
   };
 }
 
-export {
-  normalise, keyLabel, keyYear, dayNumber, longestRun, contributionDays,
-  observationsPerYear, ratesFor, buildSeries, runScenario,
-};
+/** Monthly data, so this is a constant — kept as a name rather than a literal 12. */
+const OBSERVATIONS_PER_YEAR = 12;
+
+export { normalise, keyLabel, keyYear, longestRun, ratesFor, buildSeries, runScenario, OBSERVATIONS_PER_YEAR };

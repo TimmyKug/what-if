@@ -39,7 +39,7 @@ jobs:
 
       - name: Check nothing is missing
         run: |
-          for f in index.html app.js engine.js styles.css data/market-data.json data/market-data-daily.json; do
+          for f in index.html app.js engine.js styles.css data/market-data.json; do
             test -s "_site/$f" || { echo "missing or empty: $f"; exit 1; }
           done
 

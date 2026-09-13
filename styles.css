@@ -422,28 +422,6 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 
 .footnote { margin: 2px 2px 0; font-size: 0.7188rem; line-height: 1.55; color: var(--ink-3); }
 
-/* ---------- inline select (cadence, inside a label) ---------- */
-
-.inline-select {
-  width: auto;
-  padding: 1px 1.25rem 1px 0.3125rem;
-  margin-left: 1px;
-  background-color: transparent;
-  border: none;
-  border-bottom: 1px dashed var(--line);
-  border-radius: 0;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 500;
-  background-position: calc(100% - 0.5rem) 55%, calc(100% - 0.1875rem) 55%;
-}
-
-.inline-select:hover { border-bottom-color: var(--accent); }
-
-/* ---------- loading state ---------- */
-
-.chart-host[data-loading="true"] { opacity: 0.35; transition: opacity 0.15s ease; }
-
 
 /* Group headings inside the instrument dropdown. */
 select optgroup {
@@ -503,7 +481,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   color: var(--ink-2);
 }
 
-.duration { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.duration { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
 
 .duration-part { display: grid; gap: 0.2rem; min-width: 0; }
 
@@ -515,7 +493,3 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   color: var(--ink-3);
 }
 
-/* Days are meaningless against month-end observations, so the control says so
-   rather than silently rounding. */
-.duration-part input:disabled { opacity: 0.4; cursor: not-allowed; }
-.duration-part input:disabled + span { opacity: 0.4; }

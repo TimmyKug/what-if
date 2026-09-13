@@ -3,10 +3,10 @@
  * is long enough to cover, and draws the average, median, best and worst of them.
  *
  * Runs client-side against the committed datasets in `data/`; refresh them with
- * `node scripts/fetch-market-data.mjs` and `node scripts/fetch-daily-data.mjs`.
+ * `node scripts/fetch-market-data.mjs`.
  */
 
-import { normalise, keyLabel, buildSeries, runScenario, observationsPerYear } from "./engine.js";
+import { normalise, keyLabel, buildSeries, runScenario, OBSERVATIONS_PER_YEAR } from "./engine.js";
 
 /**
  * Three lines, validated against the dark surface across *all* pairs rather than
@@ -65,20 +65,8 @@ function detectCurrency() {
 
 /* ------------------------------------------------------------------- data */
 
-/** Monthly loads with the page; daily is ~810KB gzipped, so it waits until asked. */
-const datasets = { monthly: null, daily: null };
-let dailyRequest = null;
-
-async function dataset(resolution) {
-  if (datasets[resolution]) return datasets[resolution];
-  if (resolution === "monthly") {
-    datasets.monthly = normalise(await (await fetch("data/market-data.json")).json());
-    return datasets.monthly;
-  }
-  dailyRequest ??= fetch("data/market-data-daily.json")
-    .then((r) => r.json())
-    .then((j) => (datasets.daily = normalise(j)));
-  return dailyRequest;
+async function loadData() {
+  return normalise(await (await fetch("data/market-data.json")).json());
 }
 
 /* --------------------------------------------------------------- formatting */
@@ -100,20 +88,15 @@ const percent = (v) =>
 const change = (gain, paidIn) =>
   paidIn > 0 ? percent((gain / paidIn) * 100) : `${gain >= 0 ? "+" : "−"}${money.format(Math.abs(gain))}`;
 
-const DAYS_PER_YEAR = 365.2425;
-
 /** A horizon as a fraction of a year, which is what the step count is built on. */
-const durationYears = ({ years, months, days }) => years + months / 12 + days / DAYS_PER_YEAR;
+const durationYears = ({ years, months }) => years + months / 12;
 
 /** "10 years", "3 years 6 months", "2 months 10 days" — empty parts dropped. */
-function durationLabel({ years, months, days }) {
-  const parts = [
-    [years, "year"], [months, "month"], [days, "day"],
-  ].filter(([n]) => n > 0).map(([n, unit]) => `${n} ${unit}${n === 1 ? "" : "s"}`);
+function durationLabel({ years, months }) {
+  const parts = [[years, "year"], [months, "month"]]
+    .filter(([n]) => n > 0).map(([n, unit]) => `${n} ${unit}${n === 1 ? "" : "s"}`);
   return parts.length ? parts.join(" ") : "0 months";
 }
-
-const CADENCE_WORD = { monthly: "month", weekly: "week", daily: "trading day" };
 
 /**
  * Grouped so the dropdown says which series are alternatives for each other.
@@ -213,8 +196,8 @@ function drawChart(result, years) {
       t === 0 ? "start" : `${t}${inMonths ? "m" : "y"}`));
   }
 
-  // Everywhere any historical timeline ever went. Drawn thinned out, because at
-  // daily resolution there are thousands of points and the outline is identical.
+  // Everywhere any historical timeline ever went, drawn thinned out on long
+  // horizons where the extra points change nothing.
   const stride = Math.max(1, Math.floor(steps / 600));
   const band = [];
   for (let t = 0; t <= steps; t += stride) band.push(`${t === 0 ? "M" : "L"}${x(t)},${y(result.envelope.high[t])}`);
@@ -318,12 +301,8 @@ const ui = {
   currency: document.getElementById("currency"),
   initial: document.getElementById("initial"),
   monthly: document.getElementById("monthly"),
-  cadence: document.getElementById("cadence"),
-  cadenceHint: document.getElementById("cadence-hint"),
   years: document.getElementById("years"),
   months: document.getElementById("months"),
-  days: document.getElementById("days"),
-  daysPart: document.getElementById("days-part"),
   horizonHint: document.getElementById("horizon-hint"),
   instrumentHint: document.getElementById("instrument-hint"),
   currencyHint: document.getElementById("currency-hint"),
@@ -347,17 +326,14 @@ function readInputs() {
     currency: ui.currency.value,
     initial: Math.max(0, Number(ui.initial.value) || 0),
     contribution: Number(ui.monthly.value) || 0,
-    cadence: ui.cadence.value,
     years: Math.max(0, Math.trunc(Number(ui.years.value) || 0)),
     months: Math.max(0, Math.trunc(Number(ui.months.value) || 0)),
-    days: Math.max(0, Math.trunc(Number(ui.days.value) || 0)),
   };
 }
 
 const yearOf = (key) => String(key).slice(0, 4);
 const span = (instrument) => `${yearOf(instrument.keys[0])}\u2013${yearOf(instrument.keys.at(-1))}`;
 
-/** Rebuilt per dataset, since daily and monthly series start in different years. */
 function renderInstrumentOptions(data) {
   const byId = new Map(data.instruments.map((i) => [i.id, i]));
   const selected = ui.instrument.value;
@@ -410,8 +386,8 @@ function renderLegend(lines, withValues) {
 }
 
 /**
- * At daily resolution there can be thousands of start dates, so the table shows
- * the distribution rather than every window, plus the three the chart names.
+ * There can be hundreds of start months, so the table shows the distribution
+ * rather than every window, plus the three the chart names.
  */
 function renderTable(result) {
   const paidIn = result.paidIn.at(-1);
@@ -432,7 +408,7 @@ function renderTable(result) {
     if (markKey) tr.dataset.mark = markKey;
     tr.innerHTML =
       `<td>${label}${meta ? `<span class="mark-tag" style="background:${meta.color}">${meta.label}</span>` : ""}</td>` +
-      `<td>${pick ? keyLabel(pick.startKey, result.daily) : ""}</td>` +
+      `<td>${pick ? keyLabel(pick.startKey) : ""}</td>` +
       `<td class="num">${money.format(paidIn)}</td>` +
       `<td class="num">${money.format(value)}</td>` +
       `<td class="num ${gain >= 0 ? "gain-positive" : "gain-negative"}">${change(gain, paidIn)}</td>` +
@@ -441,7 +417,7 @@ function renderTable(result) {
   }));
 }
 
-function renderAssumptions(series, result, { instrument, currency, horizon, cadence, longer }) {
+function renderAssumptions(series, result, { instrument, currency, horizon, longer }) {
   const warnings = [];
   if (longer) {
     warnings.push(
@@ -459,7 +435,7 @@ function renderAssumptions(series, result, { instrument, currency, horizon, cade
   if (series.converted) {
     warnings.push(`Prices are converted from ${instrument.currency} to ${currency} at each period's exchange rate, so the result includes currency movement. History starts where the exchange-rate series does.`);
   }
-  const spanYears = result.windows / (series.daily ? observationsPerYear(series.keys, true) : 12);
+  const spanYears = result.windows / 12;
   if (spanYears < 10) {
     warnings.push(`This series offers ${result.windows.toLocaleString()} start dates for a plan of ${durationLabel(horizon)}, spanning ${spanYears.toFixed(1)} years. Neighbouring windows share almost all of their history, so "best" and "worst" describe two particular start dates rather than the full range of what is possible.`);
   }
@@ -470,20 +446,13 @@ function renderAssumptions(series, result, { instrument, currency, horizon, cade
     warnings.push(
       `${instrument.name} is a single speculative asset, not a diversified portfolio, and its record is short: the whole history here is briefer than one of the drawdowns in the equity series. Every "worst case" below is the worst of a handful of overlapping windows drawn from one bull market and one crash, which is not the same as the worst that can happen.`,
     );
-    if (currency !== "USD") {
-      warnings.push(`${instrument.name} trades every day of the week, but exchange rates are published on working days only, so weekend prices are converted at the preceding Friday's rate.`);
-    }
   } else if (!["msci-world", "msci-acwi", "msci-world-index", "sp500", "ff-developed", "ff-us"].includes(instrument.id)) {
     warnings.push(`${instrument.name} here is a tradable fund used as a proxy for the index, not the index itself.`);
-  }
-  if (series.daily && instrument.currency !== currency) {
-    warnings.push(`Daily currency conversion uses ECB reference rates, which start in 1999 — at monthly resolution this series reaches further back.`);
   }
 
   ui.assumptions.innerHTML =
     `<dl class="kv">` +
     `<dt>Instrument</dt><dd>${instrument.detail}</dd>` +
-    `<dt>Resolution</dt><dd>${series.daily ? "Daily, one observation per trading day" : "Monthly, one observation per month-end"}</dd>` +
     `<dt>Series currency</dt><dd>${
       series.denominated ? `${currency}, computed in that currency at source (no conversion)`
         : series.converted ? `${instrument.currency} → converted to ${currency} at historical rates`
@@ -493,9 +462,9 @@ function renderAssumptions(series, result, { instrument, currency, horizon, cade
         : !instrument.adjusted ? "Price return (dividends excluded)"
         : instrument.grossOfTax ? "Total return, gross of dividend withholding tax"
         : "Total return, net of dividend withholding tax"}</dd>` +
-    `<dt>History used</dt><dd>${keyLabel(series.keys[0], series.daily)} – ${keyLabel(series.keys.at(-1), series.daily)} · ${series.returns.length.toLocaleString()} observations</dd>` +
+    `<dt>History used</dt><dd>${keyLabel(series.keys[0])} – ${keyLabel(series.keys.at(-1))} · ${series.returns.length.toLocaleString()} observations</dd>` +
     `<dt>Start dates tested</dt><dd>${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)}, one per start date</dd>` +
-    `<dt>Buying</dt><dd>Every ${CADENCE_WORD[cadence]}${series.daily && cadence !== "daily" ? `, on the first trading day of each ${CADENCE_WORD[cadence]}` : ""}</dd>` +
+    `<dt>Buying</dt><dd>Every month, at each month-end observation</dd>` +
     `<dt>Cash-flow order</dt><dd>The balance earns each period's return first, then the payment is added</dd>` +
     `<dt>Not included</dt><dd>Tax, trading fees, fund costs beyond those already in the price, and inflation</dd>` +
     `<dt>Source</dt><dd>${data.source}, fetched ${new Date(data.fetchedAt).toLocaleDateString()}</dd>` +
@@ -520,7 +489,7 @@ function longerHistory(instrument, input, steps, result) {
 
   const series = buildSeries(data, reference, input.currency);
   const run = runScenario(series, {
-    steps, initial: input.initial, contribution: input.contribution, cadence: input.cadence,
+    steps, initial: input.initial, contribution: input.contribution,
   });
   if (!run || run.windows <= result.windows) return null;
 
@@ -529,7 +498,7 @@ function longerHistory(instrument, input, steps, result) {
   const here = result.paths.worst.at(-1);
   return {
     name: reference.name,
-    from: keyLabel(series.keys[0], series.daily),
+    from: keyLabel(series.keys[0]),
     extra: run.windows - result.windows,
     worst, paidIn,
     delta: worst < here
@@ -538,31 +507,18 @@ function longerHistory(instrument, input, steps, result) {
   };
 }
 
-let renderToken = 0;
-
-async function render() {
-  const token = ++renderToken;
+function render() {
   const input = readInputs();
   setCurrencyFormat(input.currency);
   ui.initialSymbol.textContent = CURRENCIES[input.currency] ?? input.currency;
   ui.monthlySymbol.textContent = (input.contribution < 0 ? "−" : "+") + (CURRENCIES[input.currency] ?? input.currency);
   ui.monthlySymbol.classList.toggle("money-symbol--plus", input.contribution >= 0);
 
-  // Weekly and daily buying need a daily series; monthly buying does not, and the
-  // monthly dataset reaches further back, so it stays the default.
-  const resolution = input.cadence === "monthly" ? "monthly" : "daily";
-  if (!datasets[resolution]) host.dataset.loading = "true";
-  const previous = data;
-  data = await dataset(resolution);
-  if (token !== renderToken) return;
-  host.dataset.loading = "false";
-  if (data !== previous) renderInstrumentOptions(data);
-
   const instrument = data.instruments.find((i) => i.id === input.instrumentId) ?? data.instruments[0];
   ui.instrument.value = instrument.id;
   ui.instrumentHint.textContent = instrument.detail;
 
-  const cacheKey = `${resolution}|${instrument.id}|${input.currency}`;
+  const cacheKey = `${instrument.id}|${input.currency}`;
   if (seriesCache?.key !== cacheKey) {
     seriesCache = { key: cacheKey, series: buildSeries(data, instrument, input.currency) };
   }
@@ -574,53 +530,33 @@ async function render() {
       ? `Converted from ${instrument.currency} at historical rates.`
       : `${instrument.name} is quoted in ${input.currency}, so no conversion is applied.`;
 
-  const perYear = observationsPerYear(series.keys, series.daily);
-
-  // Days cannot mean anything against month-end observations.
-  ui.days.disabled = !series.daily;
-  ui.daysPart.title = series.daily ? "" : "Daily buying uses daily data, where a day is a step";
-
+  const perYear = OBSERVATIONS_PER_YEAR;
   const requested = Math.max(1, Math.round(durationYears(input) * perYear));
   const available = series.returns.length;
   const steps = Math.min(requested, available);
   const horizon = steps === requested
     ? input
-    : { years: Math.floor(steps / perYear), months: Math.round((steps / perYear % 1) * 12), days: 0 };
+    : { years: Math.floor(steps / perYear), months: steps % perYear };
 
   ui.horizonHint.textContent = steps < requested
     ? `Only ${durationLabel(horizon)} of history is available, so that is what is shown.`
-    : series.daily
-      ? ""
-      : "Month-end data, so days are ignored here.";
+    : "";
   const years = steps / perYear;
-  const result = runScenario(series, {
-    steps, initial: input.initial, contribution: input.contribution, cadence: input.cadence,
-  });
+  const result = runScenario(series, { steps, initial: input.initial, contribution: input.contribution });
   if (!result) {
     ui.chartSub.textContent = "Not enough history for this horizon.";
     return;
   }
-  result.daily = series.daily;
 
   ui.chartSub.textContent =
-    `${durationLabel(horizon)} of ${instrument.name} in ${input.currency}, buying every ${CADENCE_WORD[input.cadence]}, ` +
+    `${durationLabel(horizon)} of ${instrument.name} in ${input.currency}, ` +
     `replayed from all ${result.windows.toLocaleString()} start dates in the data.`;
   ui.chartDesc.textContent =
     `Line chart of portfolio value over ${durationLabel(horizon)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
     `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))}, ` +
     `against ${money.format(result.paidIn.at(-1))} paid in. The median outcome was ${money.format(result.paths.median.at(-1))}.`;
   ui.windowsNote.textContent =
-    `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0], series.daily)}.`;
-  // Buying daily at the same figure is ~21x the money, so state the equivalent
-  // monthly rate: comparing cadences is only meaningful at the same total.
-  if (input.cadence === "monthly") {
-    ui.cadenceHint.textContent = "Negative values withdraw instead of paying in.";
-  } else {
-    const perMonth = input.contribution * (result.contributions / input.contribution) / (years * 12);
-    ui.cadenceHint.textContent =
-      `About ${money.format(Math.abs(perMonth))} a month at this rate. Weekly and daily buying use the ` +
-      `daily dataset, which starts later for converted currencies.`;
-  }
+    `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0])}.`;
 
   drawChart(result, years);
   renderTable(result);
@@ -628,7 +564,7 @@ async function render() {
 }
 
 async function init() {
-  data = await dataset("monthly");
+  data = await loadData();
 
   renderInstrumentOptions(data);
   ui.instrument.value = "ff-developed";
@@ -637,12 +573,12 @@ async function init() {
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
 
-  for (const control of [ui.instrument, ui.currency, ui.initial, ui.monthly, ui.cadence,
-                        ui.years, ui.months, ui.days]) {
+  for (const control of [ui.instrument, ui.currency, ui.initial, ui.monthly,
+                        ui.years, ui.months]) {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);
-  await render();
+  render();
 }
 
 init();

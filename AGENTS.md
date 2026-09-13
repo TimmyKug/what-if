@@ -13,10 +13,8 @@
 - `engine.js` — pure logic: calendar helpers, currency conversion, the backtest.
   No DOM, so it is importable from Node.
 - `app.js` — data loading, the SVG chart, and the controls.
-- `data/market-data.json` — committed monthly history.
-- `data/market-data-daily.json` — committed daily history, lazy-loaded by the app
-  only when a weekly or daily buying cadence is selected.
-- `scripts/` — two fetch scripts and the engine smoke test.
+- `data/market-data.json` — committed month-end history.
+- `scripts/` — fetch, verify and engine-check scripts.
 
 The app needs no API key and makes no network calls at runtime.
 
@@ -24,8 +22,8 @@ The app needs no API key and makes no network calls at runtime.
 
 - Serve: `python3 -m http.server 8000` (ES modules need `http://`, not `file://`).
 - Test: `node scripts/check-engine.mjs` (covers both datasets).
-- Refresh data: `node scripts/fetch-market-data.mjs` and
-  `node scripts/fetch-daily-data.mjs`. Set `DATA_DIR` to write elsewhere.
+- Refresh data: `node scripts/fetch-market-data.mjs`. Set `DATA_DIR` to write
+  elsewhere.
 - Verify a fetched dataset: `node scripts/verify-data.mjs <dir> [baseline-dir]`.
 - CI: `.github/workflows/refresh-data.yml` (weekly, staged + verified) and
   `.github/workflows/deploy-pages.yml` (Pages).
@@ -42,11 +40,10 @@ There is no install, lint, or build step — no dependencies, no bundler.
 - Every modeling shortcut must be visible in the "Data and assumptions" panel.
   Price-return series, currency conversion, proxy instruments, thin history, and
   depleted portfolios all warn there already.
-- Both datasets normalise to integer keys (YYYYMM or YYYYMMDD) via `normalise()`
-  before the engine sees them, so engine code never branches on which file it got.
-- `runScenario` is deliberately two-pass: daily resolution reaches tens of
-  thousands of windows, and keeping every balance path would run to hundreds of
-  megabytes. Pass one aggregates, pass two replays only the three drawn paths.
+- Data normalises to integer keys (YYYYMM) via `normalise()` before the engine
+  sees it.
+- `runScenario` is two-pass: pass one aggregates, pass two replays only the three
+  drawn paths, which keeps memory flat in the number of windows.
 - Chart series colors are validated against the dark surface for colorblind
   separation with `--pairs all`, not the default adjacent-pairs mode: every line
   is on screen at once, so every pair has to separate, and adjacent-only checking
