@@ -244,5 +244,4 @@ Note the MSCI caveat above before making the repository public.
 
 If this was useful to you:
 
-<!-- TODO: replace with the real Buy Me a Coffee link -->
-[☕ Buy me a coffee](https://www.buymeacoffee.com/YOUR_USERNAME)
+[☕ Buy me a coffee](https://buymeacoffee.com/timmykug)
