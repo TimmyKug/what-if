@@ -100,6 +100,36 @@ check("EUR→USD view differs from EUR view by the exchange-rate move",
   near(growth(inUsd) / growth(inEur), fxMove, 0.02),
   `ratio ${(growth(inUsd) / growth(inEur)).toFixed(4)} vs fx ${fxMove.toFixed(4)}`);
 
+// Every one of these tracks world equities, so their monthly returns must move
+// together. This is the guard against a misaligned calendar: shifting a series by
+// a single month drops its correlation from ~0.98 to about zero, which is how the
+// Yahoo timezone bug was found.
+console.log("\ncross-checks against MSCI World");
+const returnsOf = (series) => series.returns;
+const correlation = (a, b) => {
+  const months = a.months.filter((m) => b.months.includes(m));
+  const pick = (s) => {
+    const index = new Map(s.months.map((m, i) => [m, i]));
+    return months.slice(1).map((m) => s.returns[index.get(m) - 1]);
+  };
+  const [x, y] = [pick(a), pick(b)];
+  const n = x.length;
+  const mx = x.reduce((t, v) => t + v, 0) / n;
+  const my = y.reduce((t, v) => t + v, 0) / n;
+  const cov = x.reduce((t, v, i) => t + (v - mx) * (y[i] - my), 0) / n;
+  const sx = Math.sqrt(x.reduce((t, v) => t + (v - mx) ** 2, 0) / n);
+  const sy = Math.sqrt(y.reduce((t, v) => t + (v - my) ** 2, 0) / n);
+  return cov / (sx * sy);
+};
+
+const world = buildSeries(data, data.instruments.find((i) => i.id === "msci-world"), "USD");
+for (const instrument of data.instruments) {
+  if (instrument.id === "msci-world") continue;
+  const r = correlation(buildSeries(data, instrument, "USD"), world);
+  check(`${instrument.id}: monthly returns line up with MSCI World`, r > 0.9, `correlation ${r.toFixed(4)}`);
+}
+void returnsOf;
+
 // How much history each series actually offers for the default ten-year plan.
 // One window per start month, the last starting `horizon` months before the end.
 const windows = (series, horizon) => Math.max(0, series.returns.length - horizon + 1);

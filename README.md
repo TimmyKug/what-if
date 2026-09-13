@@ -120,7 +120,14 @@ Older instrument rows, for reference:
 
 ### Exchange rates
 
-Monthly rates come from Eurostat's `ert_bil_eur_m`, which publishes a continuous
+Monthly rates come from Eurostat's `ert_bil_eur_m` at `statinfo=END` — the
+end-of-period rate, not the monthly average. The prices being converted are
+month-end closes, so an average rate would pair a month-end price with a
+mid-month exchange rate and inject timing noise into every converted return.
+It is worth roughly 0.12 on the correlation between a converted series and a
+natively denominated one.
+
+The dataset publishes a continuous
 euro/ECU series back to **1971-01** — the euro replaced the ECU 1:1 in 1999, so
 the series bridges that boundary. Every currency the app offers reaches back past
 1990 except SGD (1999). Eurostat quotes units per euro; the pipeline stores USD

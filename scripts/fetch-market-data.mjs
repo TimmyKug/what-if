@@ -190,13 +190,18 @@ async function chart(symbol) {
   const values = adjclose ?? close;
   if (!values) throw new Error(`${symbol}: no price series`);
 
-  // Yahoo dates the last bar "today" rather than the first of the month, so key
-  // by month and keep the last observation seen for each one.
+  // Yahoo stamps each monthly bar at the first day of the month in *exchange-local*
+  // time, which for a European listing is 22:00 or 23:00 UTC on the last day of the
+  // month before. Reading it as UTC therefore labels every bar one month early, and
+  // then pairs it with the wrong month's exchange rate. Shift by the exchange's own
+  // offset before taking the month. (The last bar is stamped "today", so keeping the
+  // last value seen per month still collapses it onto the right one.)
+  const offset = result.meta.gmtoffset ?? 0;
   const byMonth = new Map();
   result.timestamp.forEach((ts, i) => {
     const v = values[i];
     if (v == null || !Number.isFinite(v) || v <= 0) return;
-    const d = new Date(ts * 1000);
+    const d = new Date((ts + offset) * 1000);
     const month = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     byMonth.set(month, v);
   });
@@ -214,11 +219,16 @@ const round = (v) => Number(v.toPrecision(8));
  *
  * Eurostat quotes units of each currency per euro; the rest of this project
  * works in USD per unit, which is `rate(USD) / rate(currency)`.
+ *
+ * `statinfo=END` asks for the end-of-period rate rather than the monthly average.
+ * That matters: the prices these convert are month-end closes, so an average rate
+ * would pair a month-end price with a mid-month exchange rate and inject timing
+ * noise into every converted return.
  */
 async function eurostatRates() {
   const url =
     "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ert_bil_eur_m" +
-    "?format=JSON&statinfo=AVG&lang=en";
+    "?format=JSON&statinfo=END&lang=en";
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
   if (!res.ok) throw new Error(`Eurostat: HTTP ${res.status}`);
   const body = await res.json();
