@@ -33,8 +33,7 @@ It cannot tell you which decade you will get either — it just shows you the wh
 
 If it was useful to you:
 
-<!-- TODO: replace timmykug in both URLs with the real Buy Me a Coffee slug -->
-[![Buy me a coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=timmykug&button_colour=34e5a1&font_colour=0a0d0f&font_family=Inter&outline_colour=0a0d0f&coffee_colour=0a0d0f)](https://www.buymeacoffee.com/timmykug)
+<a href="https://www.buymeacoffee.com/timmykug"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-green.png" alt="Buy me a coffee" height="44"></a>
 
 ## What it does
 
