@@ -308,7 +308,6 @@ const ui = {
   currencyHint: document.getElementById("currency-hint"),
   initialSymbol: document.getElementById("initial-symbol"),
   monthlySymbol: document.getElementById("monthly-symbol"),
-  dataStatus: document.getElementById("data-status"),
   legend: document.getElementById("legend"),
   chartSub: document.getElementById("chart-sub"),
   chartCaption: document.getElementById("chart-caption"),
@@ -563,10 +562,6 @@ async function render() {
   }
   result.daily = series.daily;
 
-  const tag = series.daily ? `<span class="resolution-tag">daily</span>` : "";
-  ui.dataStatus.innerHTML =
-    `${series.returns.length.toLocaleString()} observations · ` +
-    `${keyLabel(series.keys[0], series.daily)}–${keyLabel(series.keys.at(-1), series.daily)}${tag}`;
   ui.chartSub.textContent =
     `${yearsLabel(years)} of ${instrument.name} in ${input.currency}, buying every ${CADENCE_WORD[input.cadence]}, ` +
     `replayed from all ${result.windows.toLocaleString()} start dates in the data.`;
