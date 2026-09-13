@@ -356,7 +356,12 @@ let seriesCache = null;
  * `from` and `to` are whole months from the start, which is how the README talks
  * about them ("33 months", "60 payments") and avoids four date fields per row.
  */
-let plan = [{ id: 1, amount: 1000, cadence: "monthly", from: 1, to: null }];
+/**
+ * `amount` is a magnitude and `out` is the direction. Encoding direction in the
+ * sign meant an amount of zero had nowhere to put it — -0 === 0, so the control
+ * could never leave "Pay in" until a number was typed.
+ */
+let plan = [{ id: 1, amount: 1000, out: false, cadence: "monthly", from: 1, to: null }];
 let nextEventId = 2;
 
 /**
@@ -396,7 +401,8 @@ function encodeState(input) {
   if (input.fixed !== null) params.set("f", input.fixed);
   if (proMode) params.set("pro", "1");
   params.set("p", plan.map((e) =>
-    [e.cadence === "once" ? "o" : "m", e.amount, e.from, ...(e.cadence === "once" || e.to == null ? [] : [e.to])]
+    [e.cadence === "once" ? "o" : "m", (e.out ? -1 : 1) * Math.abs(e.amount), e.from,
+     ...(e.cadence === "once" || e.to == null ? [] : [e.to])]
       .join(":")).join(","));
   return params.toString();
 }
@@ -423,9 +429,11 @@ function applyState(search) {
     const events = raw.split(",").map((part) => {
       const [cadence, amount, from, to] = part.split(":");
       if (!["m", "o"].includes(cadence)) return null;
+      const value = Number(amount) || 0;
       const event = {
         id: nextEventId++,
-        amount: Number(amount) || 0,
+        amount: Math.abs(value),
+        out: value < 0,
         cadence: cadence === "o" ? "once" : "monthly",
         from: Math.max(0, Math.trunc(Number(from) || 0)),
         to: to === undefined || to === "" ? null : Math.trunc(Number(to)),
@@ -540,10 +548,10 @@ function setDirection(group, out) {
 /** Rewrites the plan to the two events simple mode can express. */
 function setSimplePlan() {
   const initial = Math.max(0, Number(ui.initial.value) || 0);
-  const monthly = Math.abs(Number(ui.monthly.value) || 0) * (monthlyOut ? -1 : 1);
+  const monthly = Math.abs(Number(ui.monthly.value) || 0);
   plan = [];
-  if (initial) plan.push({ id: nextEventId++, amount: initial, cadence: "once", from: 0, to: null });
-  plan.push({ id: nextEventId++, amount: monthly, cadence: "monthly", from: 1, to: null });
+  if (initial) plan.push({ id: nextEventId++, amount: initial, out: false, cadence: "once", from: 0, to: null });
+  plan.push({ id: nextEventId++, amount: Math.abs(monthly), out: monthlyOut, cadence: "monthly", from: 1, to: null });
 }
 
 /** Fills the simple fields from the plan, for the trip back from pro mode. */
@@ -551,8 +559,8 @@ function readSimpleFromPlan() {
   const lump = plan.find((e) => e.cadence === "once" && e.from === 0);
   const repeating = plan.find((e) => e.cadence === "monthly");
   ui.initial.value = lump ? lump.amount : 0;
-  const amount = repeating ? repeating.amount : 0;
-  monthlyOut = amount < 0;
+  const amount = repeating ? Math.abs(repeating.amount) : 0;
+  monthlyOut = Boolean(repeating?.out);
   setDirection(ui.monthlyDirection, monthlyOut);
   ui.monthly.value = Math.abs(amount);
 }
@@ -579,7 +587,8 @@ function setMode(pro) {
 function buildSchedule(events, steps) {
   const schedule = new Float64Array(steps + 1);
   for (const event of events) {
-    const amount = Number(event.amount) || 0;
+    const magnitude = Math.abs(Number(event.amount) || 0);
+    const amount = event.out ? -magnitude : magnitude;
     if (!amount) continue;
     if (event.cadence === "once") {
       // Month zero is money already there before the first month's return.
@@ -597,62 +606,98 @@ const monthsLabel = (n) => {
   return [y ? `${y}y` : "", m ? `${m}m` : ""].filter(Boolean).join(" ") || "start";
 };
 
-function renderPlan(steps) {
-  const symbol = CURRENCIES[ui.currency.value] ?? ui.currency.value;
-  ui.plan.replaceChildren(...plan.map((event) => {
-    const row = document.createElement("div");
-    row.className = "plan-row";
-    const once = event.cadence === "once";
-    const to = Math.min(event.to ?? steps, steps);
-    row.innerHTML =
-      `<div class="plan-top">` +
-        `<div class="direction" role="group" aria-label="Pay in or take out">` +
-          `<button type="button" data-field="dir" data-dir="in" aria-pressed="${event.amount >= 0}">Pay in</button>` +
-          `<button type="button" data-field="dir" data-dir="out" aria-pressed="${event.amount < 0}">Take out</button>` +
-        `</div>` +
-        `<div class="money-input${event.amount < 0 ? " is-negative" : event.amount > 0 ? " is-positive" : ""}">` +
-          `<span class="money-symbol">${symbol}</span>` +
-          `<input type="number" min="0" step="10" value="${Math.abs(event.amount)}" data-field="amount" inputmode="numeric" aria-label="Amount" />` +
-        `</div>` +
-        `<select data-field="cadence" aria-label="How often">` +
-          `<option value="monthly"${once ? "" : " selected"}>each month</option>` +
-          `<option value="once"${once ? " selected" : ""}>once</option>` +
-        `</select>` +
-      `</div>` +
-      `<div class="plan-when">` +
-        `<span>${once ? "in month" : "from month"}</span>` +
-        `<input type="number" min="${once ? 0 : 1}" value="${event.from}" data-field="from" inputmode="numeric" aria-label="First month" />` +
-        (once ? "" : `<span>to</span><input type="number" min="1" value="${event.to ?? steps}" data-field="to" inputmode="numeric" aria-label="Last month" />`) +
-        `<span class="spacer"></span>` +
-        `<button type="button" class="plan-remove" data-field="remove" aria-label="Remove">\u2715</button>` +
-      `</div>` +
-      `<div class="plan-note">${once
-        ? (event.from === 0 ? "at the start" : `at ${monthsLabel(event.from)}`)
-        : `${monthsLabel(event.from)} to ${monthsLabel(to)} \u00b7 ${Math.max(0, to - event.from + 1)} payments`}</div>`;
+/**
+ * Rows are rebuilt only when the plan's shape changes — an event added, removed,
+ * or switched between once and monthly. Rebuilding on every render destroyed the
+ * input being typed into, which cost the caret after each keystroke.
+ */
+let planShape = null;
 
-    row.addEventListener("input", (e) => {
-      const field = e.target.dataset.field;
-      if (field === "amount") {
-        event.amount = Math.abs(Number(e.target.value) || 0) * (event.amount < 0 ? -1 : 1);
-      }
-      else if (field === "cadence") event.cadence = e.target.value;
-      else if (field === "from") event.from = Math.max(event.cadence === "once" ? 0 : 1, Math.trunc(Number(e.target.value) || 0));
-      else if (field === "to") event.to = Math.max(1, Math.trunc(Number(e.target.value) || 1));
-      render();
-    });
-    for (const button of row.querySelectorAll('[data-field="dir"]')) {
-      button.addEventListener("click", () => {
-        event.amount = Math.abs(event.amount) * (button.dataset.dir === "out" ? -1 : 1);
-        render();
-      });
-    }
-    row.querySelector('[data-field="remove"]').addEventListener("click", () => {
-      plan = plan.filter((x) => x !== event);
-      if (!plan.length) plan = [{ id: nextEventId++, amount: 0, cadence: "monthly", from: 1, to: null }];
-      render();
-    });
-    return row;
-  }));
+function renderPlan(steps) {
+  const shape = plan.map((e) => `${e.id}:${e.cadence}`).join("|");
+  if (shape !== planShape) {
+    planShape = shape;
+    ui.plan.replaceChildren(...plan.map((event) => buildPlanRow(event)));
+  }
+  [...ui.plan.children].forEach((row, i) => refreshPlanRow(row, plan[i], steps));
+}
+
+function buildPlanRow(event) {
+  const row = document.createElement("div");
+  row.className = "plan-row";
+  const once = event.cadence === "once";
+  row.innerHTML =
+    `<div class="plan-top">` +
+      `<div class="direction" role="group" aria-label="Pay in or take out">` +
+        `<button type="button" data-field="dir" data-dir="in">Pay in</button>` +
+        `<button type="button" data-field="dir" data-dir="out">Take out</button>` +
+      `</div>` +
+      `<div class="money-input">` +
+        `<span class="money-symbol"></span>` +
+        `<input type="number" min="0" step="10" data-field="amount" inputmode="numeric" aria-label="Amount" />` +
+      `</div>` +
+      `<select data-field="cadence" aria-label="How often">` +
+        `<option value="monthly"${once ? "" : " selected"}>each month</option>` +
+        `<option value="once"${once ? " selected" : ""}>once</option>` +
+      `</select>` +
+    `</div>` +
+    `<div class="plan-when">` +
+      `<span data-field="when-label"></span>` +
+      `<input type="number" data-field="from" inputmode="numeric" aria-label="First month" />` +
+      `<span data-field="to-label">to</span>` +
+      `<input type="number" min="1" data-field="to" inputmode="numeric" aria-label="Last month" />` +
+      `<span class="spacer"></span>` +
+      `<button type="button" class="plan-remove" data-field="remove" aria-label="Remove">\u2715</button>` +
+    `</div>` +
+    `<div class="plan-note"></div>`;
+
+  row.addEventListener("input", (e) => {
+    const field = e.target.dataset.field;
+    if (field === "amount") event.amount = Math.abs(Number(e.target.value) || 0);
+    else if (field === "cadence") event.cadence = e.target.value;
+    else if (field === "from") event.from = Math.max(event.cadence === "once" ? 0 : 1, Math.trunc(Number(e.target.value) || 0));
+    else if (field === "to") event.to = Math.max(1, Math.trunc(Number(e.target.value) || 1));
+    render();
+  });
+  for (const button of row.querySelectorAll('[data-field="dir"]')) {
+    button.addEventListener("click", () => { event.out = button.dataset.dir === "out"; render(); });
+  }
+  row.querySelector('[data-field="remove"]').addEventListener("click", () => {
+    plan = plan.filter((x) => x !== event);
+    if (!plan.length) plan = [{ id: nextEventId++, amount: 0, out: false, cadence: "monthly", from: 1, to: null }];
+    render();
+  });
+  return row;
+}
+
+/** Values only, and never into a field the caret is currently sitting in. */
+function refreshPlanRow(row, event, steps) {
+  const once = event.cadence === "once";
+  const to = Math.min(event.to ?? steps, steps);
+  const symbol = CURRENCIES[ui.currency.value] ?? ui.currency.value;
+  const set = (field, value) => {
+    const input = row.querySelector(`[data-field="${field}"]`);
+    if (input && document.activeElement !== input) input.value = value;
+  };
+
+  for (const button of row.querySelectorAll('[data-field="dir"]')) {
+    button.setAttribute("aria-pressed", String((button.dataset.dir === "out") === Boolean(event.out)));
+  }
+  row.querySelector(".money-symbol").textContent = symbol;
+  const box = row.querySelector(".money-input");
+  box.classList.toggle("is-negative", Boolean(event.out) && event.amount > 0);
+  box.classList.toggle("is-positive", !event.out && event.amount > 0);
+  set("amount", event.amount);
+  set("from", event.from);
+  set("to", event.to ?? steps);
+
+  row.querySelector('[data-field="when-label"]').textContent = once ? "in month" : "from month";
+  row.querySelector('[data-field="to-label"]').hidden = once;
+  row.querySelector('[data-field="to"]').hidden = once;
+  row.querySelector('[data-field="from"]').min = once ? 0 : 1;
+  row.querySelector(".plan-note").textContent = once
+    ? (event.from === 0 ? "at the start" : `at ${monthsLabel(event.from)}`)
+    : `${monthsLabel(event.from)} to ${monthsLabel(to)} \u00b7 ${Math.max(0, to - event.from + 1)} payments`;
 }
 
 function readInputs() {
@@ -1009,7 +1054,7 @@ async function init() {
 
   ui.modeToggle.addEventListener("click", () => setMode(!proMode));
   ui.addEvent.addEventListener("click", () => {
-    plan.push({ id: nextEventId++, amount: 0, cadence: "once", from: 0, to: null });
+    plan.push({ id: nextEventId++, amount: 0, out: false, cadence: "once", from: 0, to: null });
     render();
   });
   for (const control of [ui.instrument, ui.currency, ui.realTerms, ui.fixedOn, ui.fixedRate,
