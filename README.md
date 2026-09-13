@@ -183,6 +183,23 @@ Each series carries its own currency and whether it is dividend-adjusted:
 | MSCI ACWI (net return) | net total return | 2000-12 | 189 |
 | FTSE Global All Cap | total return | 2008-06 | 100 |
 | MSCI World ETF (EUNL) | total return | 2009-08 | 86 |
+| Bitcoin | price (no dividends exist) | 2014-09 | 25 |
+| Ethereum | price (no dividends exist) | 2017-11 | 0 |
+
+Bitcoin and Ethereum are there because people do save into them, not because
+they belong beside the rest. Two things are worth saying plainly: their record is
+short enough that a ten-year plan has 25 overlapping windows for Bitcoin and none
+at all for Ethereum, and they trade every day of the week, so a converted
+currency uses the preceding Friday's rate at weekends. Both appear as warnings on
+screen, along with the point that a "worst case" drawn from one bull market and
+one crash is not the worst that can happen.
+
+They also need their own thresholds in the checks. `verify-data.mjs` treats a
+60% move in a single period as a data error for equities, but Ether really has
+moved 78% in a month and fallen 42% in a day, so crypto gets a 250% limit. The
+cross-check that every series tracks MSCI World would be meaningless too, so
+crypto is held against the other crypto series instead — enough to catch a
+shifted calendar, which is what that check is for.
 
 Usable history is the overlap of the equity series and the exchange-rate series,
 so the exchange rate only binds where it starts later than the equity data. It

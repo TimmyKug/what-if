@@ -128,16 +128,26 @@ const blocks = (a, b, size, lag = 0) => {
 for (const [label, data] of [["monthly", monthly], ["daily", daily]]) {
   const size = data.daily ? 5 : 1;
   const world = buildSeries(data, data.instruments.find((i) => i.id === "msci-world"), "USD");
+  // Crypto has no business tracking world equities, so it is held against the
+  // other crypto series instead — enough to catch a shifted calendar, which is
+  // what this check is really for.
+  const crypto = buildSeries(data, data.instruments.find((i) => i.id === "ethereum"), "USD");
+  const cryptoAlt = buildSeries(data, data.instruments.find((i) => i.id === "bitcoin"), "USD");
+
   for (const instrument of data.instruments) {
     if (instrument.id === "msci-world") continue;
+    const isCrypto = instrument.assetClass === "crypto";
+    const reference = isCrypto ? (instrument.id === "ethereum" ? cryptoAlt : crypto) : world;
+    const floor = isCrypto ? 0.3 : 0.85;
     const series = buildSeries(data, instrument, "USD");
-    const r = blocks(series, world, size);
-    check(`${label}/${instrument.id}: returns line up with MSCI World`, r > 0.85, `correlation ${r.toFixed(4)}`);
+    const against = isCrypto ? "the other crypto series" : "MSCI World";
+    const r = blocks(series, reference, size);
+    check(`${label}/${instrument.id}: returns line up with ${against}`, r > floor, `correlation ${r.toFixed(4)}`);
 
-    const lagged = [-2, -1, 1, 2].map((l) => blocks(series, world, 1, l));
+    const lagged = [-2, -1, 1, 2].map((l) => blocks(series, reference, 1, l));
     check(`${label}/${instrument.id}: correlation peaks at lag zero`,
-      blocks(series, world, 1) > Math.max(...lagged),
-      `lag0 ${blocks(series, world, 1).toFixed(3)} vs ${lagged.map((v) => v.toFixed(3)).join("/")}`);
+      blocks(series, reference, 1) > Math.max(...lagged),
+      `lag0 ${blocks(series, reference, 1).toFixed(3)} vs ${lagged.map((v) => v.toFixed(3)).join("/")}`);
   }
 }
 

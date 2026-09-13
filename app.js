@@ -128,6 +128,7 @@ const GROUPS = [
   { label: "Developed world", ids: ["msci-world", "ff-developed", "msci-world-etf", "msci-world-index"] },
   { label: "World + emerging", ids: ["msci-acwi", "ftse-all-world"] },
   { label: "United States", ids: ["sp500", "us-total-market", "ff-us"] },
+  { label: "Crypto", ids: ["bitcoin", "ethereum"] },
 ];
 
 /* -------------------------------------------------------------------- chart */
@@ -464,7 +465,14 @@ function renderAssumptions(series, result, { instrument, currency, horizon, cade
   if (result.depleted) {
     warnings.push(`The money ran out before the end in ${result.depleted.toLocaleString()} of ${result.windows.toLocaleString()} timelines. Those are shown flat at zero from the point the portfolio could no longer cover the withdrawal.`);
   }
-  if (!["msci-world", "msci-acwi", "msci-world-index", "sp500", "ff-developed", "ff-us"].includes(instrument.id)) {
+  if (instrument.assetClass === "crypto") {
+    warnings.push(
+      `${instrument.name} is a single speculative asset, not a diversified portfolio, and its record is short: the whole history here is briefer than one of the drawdowns in the equity series. Every "worst case" below is the worst of a handful of overlapping windows drawn from one bull market and one crash, which is not the same as the worst that can happen.`,
+    );
+    if (currency !== "USD") {
+      warnings.push(`${instrument.name} trades every day of the week, but exchange rates are published on working days only, so weekend prices are converted at the preceding Friday's rate.`);
+    }
+  } else if (!["msci-world", "msci-acwi", "msci-world-index", "sp500", "ff-developed", "ff-us"].includes(instrument.id)) {
     warnings.push(`${instrument.name} here is a tradable fund used as a proxy for the index, not the index itself.`);
   }
   if (series.daily && instrument.currency !== currency) {
@@ -479,9 +487,11 @@ function renderAssumptions(series, result, { instrument, currency, horizon, cade
       series.denominated ? `${currency}, computed in that currency at source (no conversion)`
         : series.converted ? `${instrument.currency} → converted to ${currency} at historical rates`
         : `${instrument.currency} (no conversion)`}</dd>` +
-    `<dt>Return type</dt><dd>${!instrument.adjusted ? "Price return (dividends excluded)"
-      : instrument.grossOfTax ? "Total return, gross of dividend withholding tax"
-      : "Total return, net of dividend withholding tax"}</dd>` +
+    `<dt>Return type</dt><dd>${
+      instrument.assetClass === "crypto" ? "Price only — there are no dividends to reinvest"
+        : !instrument.adjusted ? "Price return (dividends excluded)"
+        : instrument.grossOfTax ? "Total return, gross of dividend withholding tax"
+        : "Total return, net of dividend withholding tax"}</dd>` +
     `<dt>History used</dt><dd>${keyLabel(series.keys[0], series.daily)} – ${keyLabel(series.keys.at(-1), series.daily)} · ${series.returns.length.toLocaleString()} observations</dd>` +
     `<dt>Start dates tested</dt><dd>${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)}, one per start date</dd>` +
     `<dt>Buying</dt><dd>Every ${CADENCE_WORD[cadence]}${series.daily && cadence !== "daily" ? `, on the first trading day of each ${CADENCE_WORD[cadence]}` : ""}</dd>` +
@@ -503,6 +513,7 @@ const REFERENCE = "ff-developed";
 
 function longerHistory(instrument, input, steps, result) {
   if (instrument.id === REFERENCE) return null;
+  if (instrument.assetClass === "crypto") return null; // not the same kind of thing
   const reference = data.instruments.find((i) => i.id === REFERENCE);
   if (!reference) return null;
 

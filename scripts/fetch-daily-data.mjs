@@ -36,6 +36,27 @@ const YAHOO = [
     detail: "S&P 500 Total Return index (US large caps)", currency: "USD", adjusted: true },
   { id: "us-total-market", symbol: "VTSMX", name: "US Total Market",
     detail: "Vanguard Total Stock Market Index Fund", currency: "USD", adjusted: true },
+  {
+    // Crypto trades every day of the week, so these series carry roughly 365
+    // observations a year where the equity ones carry about 261. Nothing needs
+    // to special-case that: step counts are derived per series.
+    id: "bitcoin",
+    symbol: "BTC-USD",
+    name: "Bitcoin",
+    detail: "Bitcoin against the US dollar from 2014 — no dividends to reinvest, so the price is the whole return",
+    currency: "USD",
+    adjusted: true,
+    assetClass: "crypto",
+  },
+  {
+    id: "ethereum",
+    symbol: "ETH-USD",
+    name: "Ethereum",
+    detail: "Ether against the US dollar from 2017 — no dividends to reinvest, so the price is the whole return",
+    currency: "USD",
+    adjusted: true,
+    assetClass: "crypto",
+  },
 ];
 
 const MSCI = [
@@ -193,7 +214,7 @@ async function main() {
   for (const spec of YAHOO) {
     const s = await yahooDaily(spec.symbol);
     instruments.push({ id: spec.id, name: spec.name, detail: spec.detail,
-      currency: spec.currency, adjusted: spec.adjusted, ...s });
+      currency: spec.currency, adjusted: spec.adjusted, assetClass: spec.assetClass, ...s });
     console.log(`${spec.name.padEnd(24)} ${span(s)}`);
   }
 

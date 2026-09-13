@@ -25,7 +25,14 @@ const FILES = ["market-data.json", "market-data-daily.json"];
 const REQUIRED = [
   "msci-world", "msci-acwi", "ff-developed", "ff-us",
   "sp500", "us-total-market", "ftse-all-world", "msci-world-etf", "msci-world-index",
+  "bitcoin", "ethereum",
 ];
+
+/**
+ * A move this big is a data error rather than a market — except in crypto, where
+ * it is a Tuesday. Ether really has moved 78% in a month and fallen 42% in a day.
+ */
+const IMPLAUSIBLE = { equity: 0.6, crypto: 2.5 };
 const CURRENCIES = ["EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK", "PLN", "NZD", "SGD"];
 
 /**
@@ -79,8 +86,8 @@ function structure(file, data) {
     const bad = instrument.values.findIndex((v) => !Number.isFinite(v) || v <= 0);
     if (bad >= 0) { fail(`${label}: value ${instrument.values[bad]} at ${keys[bad]}`); continue; }
 
-    // A single month moving more than this is a data error, not a market.
-    const jump = [...returnsByKey(instrument)].find(([, r]) => Math.abs(r) > 0.6);
+    const limit = IMPLAUSIBLE[instrument.assetClass === "crypto" ? "crypto" : "equity"];
+    const jump = [...returnsByKey(instrument)].find(([, r]) => Math.abs(r) > limit);
     if (jump) { fail(`${label}: implausible ${(jump[1] * 100).toFixed(0)}% move at ${jump[0]}`); continue; }
 
     if (instrument.byCurrency) {
