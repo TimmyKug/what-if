@@ -299,6 +299,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 .series-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .series-band { opacity: 0.1; }
 .series-label { font-size: 0.6875rem; font-weight: 600; }
+.series-value { font-size: 0.8125rem; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
 
 .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
 .cursor-dot { stroke: var(--panel); stroke-width: 2; }
@@ -343,41 +344,6 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
 }
 
 .chart-caption { margin: 0.75rem 0 0; font-size: 0.7188rem; color: var(--ink-3); }
-
-/* ---------- stat cards ---------- */
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
-  gap: 0.75rem;
-}
-
-.card {
-  padding: 0.875rem 0.9375rem;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  border-top: 2px solid var(--tint, var(--line));
-}
-
-.card-label {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.7188rem;
-  color: var(--ink-2);
-}
-
-.card-value {
-  margin-top: 0.375rem;
-  font-size: clamp(1.25rem, 2.4vw, 1.625rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.gain-positive { color: var(--accent); }
-.gain-negative { color: #e86054; }
 
 /* ---------- disclosures ---------- */
 

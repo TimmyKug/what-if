@@ -158,7 +158,7 @@ function drawChart(result, years) {
   const steps = result.steps;
   const width = host.clientWidth || 720;
   const height = svg.clientHeight || 380;
-  const pad = { top: 16, right: 76, bottom: 30, left: 62 };
+  const pad = { top: 16, right: 132, bottom: 30, left: 62 };
   const plotW = Math.max(10, width - pad.left - pad.right);
   const plotH = Math.max(10, height - pad.top - pad.bottom);
 
@@ -220,14 +220,25 @@ function drawChart(result, years) {
     }));
   }
 
+  // Each line is labelled with its name and where it ended, so the figures live
+  // on the chart rather than in a row of tiles repeating it underneath.
   const labels = lines
-    .map((line) => ({ text: line.label, color: line.color, at: y(line.values.at(-1)) }))
+    .map((line) => ({
+      text: line.label, color: line.color,
+      value: money.format(line.values.at(-1)),
+      at: y(line.values.at(-1)),
+    }))
     .sort((a, b) => a.at - b.at);
-  for (let i = 1; i < labels.length; i++) labels[i].at = Math.max(labels[i].at, labels[i - 1].at + 13);
+  // Each label is two lines now (name over value), so they need the height of
+  // both plus a gap before they stop colliding.
+  for (let i = 1; i < labels.length; i++) labels[i].at = Math.max(labels[i].at, labels[i - 1].at + 38);
   const overflow = labels.at(-1).at - (pad.top + plotH);
   if (overflow > 0) for (const label of labels) label.at -= overflow;
   for (const label of labels) {
-    svg.append(el("text", { class: "series-label", fill: label.color, x: pad.left + plotW + 8, y: label.at + 4 }, label.text));
+    svg.append(
+      el("text", { class: "series-label", fill: label.color, x: pad.left + plotW + 10, y: label.at + 1 }, label.text),
+      el("text", { class: "series-value", x: pad.left + plotW + 10, y: label.at + 17 }, label.value),
+    );
   }
 
   const cursor = el("g", { opacity: 0 });
@@ -299,7 +310,6 @@ const ui = {
   monthlySymbol: document.getElementById("monthly-symbol"),
   dataStatus: document.getElementById("data-status"),
   legend: document.getElementById("legend"),
-  cards: document.getElementById("cards"),
   chartSub: document.getElementById("chart-sub"),
   chartCaption: document.getElementById("chart-caption"),
   chartDesc: document.getElementById("chart-desc"),
@@ -365,28 +375,6 @@ function renderLegend() {
     item.innerHTML =
       `<span class="legend-swatch${s === PAID_IN ? " legend-swatch--dashed" : ""}" style="color:${s.color}"></span>${s.label}`;
     return item;
-  }));
-}
-
-/**
- * Headline figures only. The change against paid-in and each window's start date
- * live in the distribution table, and the plan itself is in the rail, so
- * repeating them here was the same numbers three times over.
- */
-function renderCards(result) {
-  const cards = [
-    ...SERIES.map((s) => ({ tint: s.color, label: s.label, value: result.paths[s.key].at(-1) })),
-    { tint: PAID_IN.color, label: "Paid in", value: result.paidIn.at(-1) },
-  ];
-
-  ui.cards.replaceChildren(...cards.map((card) => {
-    const node = document.createElement("div");
-    node.className = "card";
-    node.style.setProperty("--tint", card.tint);
-    node.innerHTML =
-      `<div class="card-label">${card.label}</div>` +
-      `<div class="card-value">${money.format(card.value)}</div>`;
-    return node;
   }));
 }
 
@@ -591,7 +579,6 @@ async function render() {
   }
 
   drawChart(result, years);
-  renderCards(result);
   renderTable(result);
   renderAssumptions(series, result, { ...input, instrument, years, longer: longerHistory(instrument, input, steps, result) });
 }
