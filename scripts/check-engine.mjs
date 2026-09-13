@@ -138,7 +138,9 @@ for (const [label, data] of [["monthly", monthly], ["daily", daily]]) {
     if (instrument.id === "msci-world") continue;
     const isCrypto = instrument.assetClass === "crypto";
     const reference = isCrypto ? (instrument.id === "ethereum" ? cryptoAlt : crypto) : world;
-    const floor = isCrypto ? 0.3 : 0.85;
+    // Emerging markets genuinely decouple from developed ones — 0.78 to 0.82 here
+    // is the market, not a defect — so each class is held to its own floor.
+    const floor = { crypto: 0.3, emerging: 0.65 }[instrument.assetClass] ?? 0.85;
     const series = buildSeries(data, instrument, "USD");
     const against = isCrypto ? "the other crypto series" : "MSCI World";
     const r = blocks(series, reference, size);

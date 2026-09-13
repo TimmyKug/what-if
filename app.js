@@ -127,6 +127,7 @@ const CADENCE_WORD = { monthly: "month", weekly: "week", daily: "trading day" };
 const GROUPS = [
   { label: "Developed world", ids: ["msci-world", "ff-developed", "msci-world-etf", "msci-world-index"] },
   { label: "World + emerging", ids: ["msci-acwi", "ftse-all-world"] },
+  { label: "Emerging markets", ids: ["msci-em", "msci-em-ex-china"] },
   { label: "United States", ids: ["sp500", "us-total-market", "ff-us"] },
   { label: "Crypto", ids: ["bitcoin", "ethereum"] },
 ];

@@ -25,7 +25,7 @@ const FILES = ["market-data.json", "market-data-daily.json"];
 const REQUIRED = [
   "msci-world", "msci-acwi", "ff-developed", "ff-us",
   "sp500", "us-total-market", "ftse-all-world", "msci-world-etf", "msci-world-index",
-  "bitcoin", "ethereum",
+  "msci-em", "msci-em-ex-china", "bitcoin", "ethereum",
 ];
 
 /**

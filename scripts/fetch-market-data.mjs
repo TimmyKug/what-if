@@ -68,6 +68,15 @@ const INSTRUMENTS = [
     adjusted: true,
   },
   {
+    id: "msci-em-ex-china",
+    symbol: "EMXC",
+    name: "MSCI EM ex China",
+    detail: "iShares MSCI EM ex China ETF from 2017 — the only free record of this index, and a short one",
+    currency: "USD",
+    adjusted: true,
+    assetClass: "emerging",
+  },
+  {
     // Crypto trades every day of the week, so these series carry roughly 365
     // observations a year where the equity ones carry about 261. Nothing needs
     // to special-case that: step counts are derived per series.
@@ -184,6 +193,16 @@ const MSCI_INDICES = [
     code: "892400",
     name: "MSCI ACWI (net return)",
     detail: "MSCI ACWI Net Total Return from 2000 — developed plus emerging markets",
+  },
+  {
+    // Identified rather than assumed: this code's monthly returns correlate 0.974
+    // with the iShares MSCI Emerging Markets ETF and only 0.910 with the ex-China
+    // one, which is the wrong way round for anything else.
+    id: "msci-em",
+    code: "891800",
+    name: "MSCI Emerging Markets",
+    detail: "MSCI Emerging Markets Net Total Return from 2000, computed by MSCI in each currency",
+    assetClass: "emerging",
   },
 ];
 
@@ -328,6 +347,7 @@ async function main() {
       symbol: index.code,
       name: index.name,
       detail: index.detail,
+      assetClass: index.assetClass,
       currency: "EUR",
       adjusted: true,
       months,

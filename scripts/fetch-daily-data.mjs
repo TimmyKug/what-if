@@ -36,6 +36,9 @@ const YAHOO = [
     detail: "S&P 500 Total Return index (US large caps)", currency: "USD", adjusted: true },
   { id: "us-total-market", symbol: "VTSMX", name: "US Total Market",
     detail: "Vanguard Total Stock Market Index Fund", currency: "USD", adjusted: true },
+  { id: "msci-em-ex-china", symbol: "EMXC", name: "MSCI EM ex China",
+    detail: "iShares MSCI EM ex China ETF from 2017 — the only free record of this index, and a short one",
+    currency: "USD", adjusted: true, assetClass: "emerging" },
   {
     // Crypto trades every day of the week, so these series carry roughly 365
     // observations a year where the equity ones carry about 261. Nothing needs
@@ -64,6 +67,9 @@ const MSCI = [
     detail: "MSCI World Net Total Return index from 2000, computed by MSCI in each currency" },
   { id: "msci-acwi", code: "892400", name: "MSCI ACWI (net return)",
     detail: "MSCI ACWI Net Total Return from 2000 — developed plus emerging markets" },
+  { id: "msci-em", code: "891800", name: "MSCI Emerging Markets",
+    detail: "MSCI Emerging Markets Net Total Return from 2000, computed by MSCI in each currency",
+    assetClass: "emerging" },
 ];
 // Only the two currencies most likely to be asked for are carried natively here.
 // Unlike the monthly file, that costs nothing in history: the ECB's daily rates
@@ -199,8 +205,8 @@ async function main() {
       if (s.dates.length !== dates.length) throw new Error(`MSCI ${spec.code}: ${currency} length mismatch`);
       byCurrency[currency] = s.values;
     }
-    instruments.push({ id: spec.id, name: spec.name, detail: spec.detail, currency: "EUR",
-      adjusted: true, dates, values: byCurrency.EUR, byCurrency });
+    instruments.push({ id: spec.id, name: spec.name, detail: spec.detail, assetClass: spec.assetClass,
+      currency: "EUR", adjusted: true, dates, values: byCurrency.EUR, byCurrency });
     console.log(`${spec.name.padEnd(24)} ${dates[0]} → ${dates.at(-1)}  ${dates.length} days × ${MSCI_CURRENCIES.length} ccy`);
   }
 
