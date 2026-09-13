@@ -58,6 +58,12 @@ Two things it says on screen rather than hiding:
 - Overlapping windows are not independent samples.
   Three hundred-odd ten-year windows drawn from 36 years are that many views of the same 36 years.
 
+## Licence
+
+The code is [MIT](LICENSE).
+The contents of `data/` are not — that is third-party market data, not mine to relicense.
+[`docs/data.md`](docs/data.md) says what is known about each source.
+
 ## More
 
 - [`docs/data.md`](docs/data.md) — every series, where it comes from, and what each one costs you.

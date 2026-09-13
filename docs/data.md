@@ -27,3 +27,23 @@ Two things the app says on screen rather than hiding:
   Three hundred-odd ten-year windows drawn from 36 years are that many views of the same 36 years.
 
 `AGENTS.md` has the engineering notes: the data traps already paid for, the MSCI licensing position, and why there is no consent banner.
+
+## Terms, per source
+
+The code in this repository is MIT licensed; the files in `data/` are not, because
+they are not ours to relicense.
+What is known about each, none of which is legal advice:
+
+| Source | Position |
+|---|---|
+| **Eurostat** (rates, prices) | EU open data, reusable with attribution. |
+| **US Bureau of Labor Statistics** (US prices) | US government work, public domain. |
+| **UK Office for National Statistics** (UK prices) | Open Government Licence v3.0, attribution required. |
+| **Fama/French** (Developed, US) | "Copyright Eugene F. Fama and Kenneth R. French", no stated licence. Universally used for research; publishing it should start with an email to Dartmouth. |
+| **MSCI** (World, ACWI, EM) | MSCI's copyrighted index data, from an undocumented endpoint. Fine locally, not a basis for redistribution — see `AGENTS.md`. |
+| **Market feeds** (ETFs, indices, crypto) | Terms generally prohibit redistribution. |
+
+The two rows at the bottom are the reason this repository being public is a
+question rather than a formality.
+The free-and-clear foundation is Eurostat plus Fama/French with permission; the
+rest are conveniences that could be dropped.
