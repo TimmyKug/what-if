@@ -95,6 +95,7 @@ Each series carries its own currency and whether it is dividend-adjusted:
 | S&P 500 Total Return | total return | 1988-01 | 345 |
 | US Total Market (VTSMX) | total return | 1992-04 | 294 |
 | MSCI ACWI (net return) | net total return | 2000-12 | 189 |
+| FTSE Global All Cap | total return | 2008-06 | 100 |
 | MSCI World ETF (EUNL) | total return | 2009-08 | 86 |
 
 Usable history is the overlap of the equity series and the exchange-rate series,
@@ -160,6 +161,27 @@ licensed products, not the public endpoint. The `MSCI World (price only)` row
 reaches back to 1985 because it comes from a market data feed rather than from
 MSCI directly — it excludes dividends, so it is a poor choice for a savings
 backtest even though it is the longest MSCI series here.
+
+### A trap worth recording: distributing ETFs on Yahoo
+
+The FTSE row is taken from `VT`, the accumulating US listing, not from the
+European `VWRL.AS` that tracks the same index and has a longer European history.
+Yahoo's dividend adjustment on that distributing share class is wrong — it
+trails MSCI ACWI by 1.92pp/year at a correlation of 0.88, where the accumulating
+share classes of the very same fund track it at 0.983–0.994 with no meaningful
+gap:
+
+| Ticker | vs ACWI | Gap/yr | From |
+|---|---|---|---|
+| VWRL.AS (distributing) | 0.8800 | −1.92 pp | 2012-05 |
+| VWCE.DE (accumulating) | 0.9831 | −0.15 pp | 2019-07 |
+| VWRA.L (accumulating) | 0.9868 | +0.00 pp | 2019-07 |
+| VT (accumulating) | 0.9938 | +0.22 pp | 2008-06 |
+
+Prefer an accumulating listing whenever a choice exists: dividends are reinvested
+inside the fund, so its price is already a total return and no adjustment has to
+be trusted. The cross-check in `scripts/check-engine.mjs` catches this class of
+problem, which is why it is there.
 
 ### On the MSCI source
 

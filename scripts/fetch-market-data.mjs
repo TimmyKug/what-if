@@ -46,6 +46,18 @@ const INSTRUMENTS = [
     adjusted: true,
   },
   {
+    // The FTSE-family counterpart to MSCI ACWI, and the index behind VWCE/VWRL.
+    // Taken from the accumulating US listing: Yahoo's dividend adjustment on the
+    // distributing European share class (VWRL.AS) is broken, trailing ACWI by
+    // 1.9pp/year, while this one tracks it at 0.994 correlation.
+    id: "ftse-all-world",
+    symbol: "VT",
+    name: "FTSE Global All Cap",
+    detail: "Vanguard Total World Stock ETF from 2008 — the FTSE index family, incl. small caps",
+    currency: "USD",
+    adjusted: true,
+  },
+  {
     id: "us-total-market",
     symbol: "VTSMX",
     name: "US Total Market",
