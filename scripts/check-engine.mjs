@@ -57,6 +57,20 @@ check("a solvent plan reports no depletion", flatRun.depleted === 0);
 console.log("\nseries");
 for (const instrument of data.instruments) {
   const base = buildSeries(data, instrument, instrument.currency);
+  if (instrument.byCurrency) {
+    // A natively denominated series must be used as-is, never routed through FX.
+    const currencies = Object.keys(instrument.byCurrency);
+    check(`${instrument.id}: every published currency is used directly`,
+      currencies.every((c) => {
+        const s = buildSeries(data, instrument, c);
+        return s.denominated && !s.converted && s.returns.length === instrument.months.length - 1;
+      }));
+    check(`${instrument.id}: currencies genuinely differ from one another`,
+      new Set(currencies.map((c) => buildSeries(data, instrument, c).returns.at(-1).toFixed(6))).size > 1);
+    check(`${instrument.id}: a currency it does not publish still converts`,
+      (() => { const s = buildSeries(data, instrument, "PLN"); return !s.denominated && s.returns.length > 24; })());
+    continue;
+  }
   check(`${instrument.id}: unconverted series is gap-free and complete`,
     !base.converted && base.returns.length === instrument.months.length - 1,
     `${base.returns.length} vs ${instrument.months.length - 1}`);
@@ -77,7 +91,7 @@ for (const instrument of data.instruments) {
 
 // A EUR-quoted series viewed in USD should differ from the EUR view by roughly
 // the exchange-rate move over the same window.
-const eunl = data.instruments.find((i) => i.id === "msci-world-eur");
+const eunl = data.instruments.find((i) => i.id === "msci-world-etf");
 const inEur = buildSeries(data, eunl, "EUR");
 const inUsd = buildSeries(data, eunl, "USD");
 const growth = (s) => s.returns.reduce((acc, r) => acc * (1 + r), 1);

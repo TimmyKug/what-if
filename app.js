@@ -371,14 +371,20 @@ function renderAssumptions(series, result, { instrument, currency, years }) {
       `The money ran out before the end in ${result.depleted} of ${result.windows.length} timelines. Those are shown flat at zero from the month the portfolio could no longer cover the withdrawal.`,
     );
   }
-  if (instrument.id !== "msci-world-index" && instrument.id !== "sp500") {
+  if (!["msci-world", "msci-world-index", "sp500"].includes(instrument.id)) {
     warnings.push(`${instrument.name} here is a tradable fund used as a proxy for the index, not the index itself.`);
   }
 
   ui.assumptions.innerHTML =
     `<dl class="kv">` +
     `<dt>Instrument</dt><dd>${instrument.detail}</dd>` +
-    `<dt>Series currency</dt><dd>${instrument.currency}${series.converted ? ` → converted to ${currency}` : " (no conversion)"}</dd>` +
+    `<dt>Series currency</dt><dd>${
+      series.denominated
+        ? `${currency}, computed in that currency at source (no conversion)`
+        : series.converted
+          ? `${instrument.currency} → converted to ${currency} at historical rates`
+          : `${instrument.currency} (no conversion)`
+    }</dd>` +
     `<dt>Return type</dt><dd>${instrument.adjusted ? "Total return (dividends included)" : "Price return (dividends excluded)"}</dd>` +
     `<dt>History used</dt><dd>${monthLabel(series.months[0])} – ${monthLabel(series.months.at(-1))} · ${series.returns.length} monthly returns</dd>` +
     `<dt>Windows tested</dt><dd>${result.windows.length} overlapping ${yearsAdj(years)} periods, one per start month</dd>` +
@@ -403,9 +409,11 @@ function render() {
   }
   const series = seriesCache.series;
 
-  ui.currencyHint.textContent = series.converted
-    ? `Converted from ${input.instrument.currency} at historical rates.`
-    : `${input.instrument.name} is quoted in ${input.currency}, so no conversion is applied.`;
+  ui.currencyHint.textContent = series.denominated
+    ? `MSCI computes this index in ${input.currency} directly, so no conversion is applied.`
+    : series.converted
+      ? `Converted from ${input.instrument.currency} at historical rates.`
+      : `${input.instrument.name} is quoted in ${input.currency}, so no conversion is applied.`;
 
   // The horizon can never exceed the history the current series actually has.
   const maxYears = Math.max(1, Math.floor(series.returns.length / 12));
@@ -452,7 +460,7 @@ async function init() {
 
   ui.instrument.replaceChildren(...data.instruments.map((i) =>
     Object.assign(document.createElement("option"), { value: i.id, textContent: i.name })));
-  ui.instrument.value = "msci-world-eur";
+  ui.instrument.value = "msci-world";
 
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>
     Object.assign(document.createElement("option"), {

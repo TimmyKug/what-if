@@ -88,16 +88,45 @@ Each series carries its own currency and whether it is dividend-adjusted:
 
 | Series | Currency | Returns | History from |
 |---|---|---|---|
-| MSCI World (EUNL, Xetra, accumulating) | EUR | total return | 2009 |
+| **MSCI World** (default) | 12, computed at source | net total return | 2000-12 |
+| MSCI World ETF (EUNL, Xetra) | EUR | total return | 2009 |
 | MSCI World Index | USD | price return only | 1985 |
 | MSCI ACWI (ACWI) | USD | total return | 2008 |
 | S&P 500 Total Return | USD | total return | 1988 |
 | US Total Market (VTSMX) | USD | total return | 1992 |
 
-Picking a different display currency converts the series month by month at the
-historical exchange rate, so the result includes currency movement. Usable
-history is then the overlap of the price series and the exchange-rate series,
-and gaps in the monthly FX data carry the last known rate forward.
+MSCI computes its indices separately in each currency, so the default series is
+already denominated in USD, EUR, GBP, CHF, JPY, CAD, AUD, SEK, NOK, DKK, NZD and
+SGD — no exchange-rate series in the middle, no conversion error, and no history
+lost to one. `NETR` is the net total return variant, dividends reinvested after
+withholding tax, which is what a UCITS ETF actually tracks.
+
+For any other series, or for a currency MSCI does not publish (PLN starts only in
+late 2025), the display currency is applied by converting month by month at the
+historical rate. Usable history is then the overlap of the price series and the
+exchange-rate series, and gaps in the monthly FX data carry the last known rate
+forward.
+
+### On the MSCI source
+
+`app2.msci.com` is the undocumented JSON backend of MSCI's public end-of-day
+index search. It needs no key, and the same endpoint serves `DAILY` instead of
+`END_OF_MONTH` if per-day start dates are ever wanted.
+
+It is also MSCI's copyrighted index data, and index licensing is their business.
+That is fine for a personal tool; it is **not** a basis for a public product, and
+non-commercial use is not an exemption — in the EU the database right
+(Directive 96/9/EC, UrhG §§87a–87e) applies regardless of commercial intent.
+
+If this ever needs a publishable footing, the closest free substitute is the
+Fama/French **Developed** series (monthly and daily from 1990-07, USD). Measured
+over the 307-month overlap it correlates with MSCI World at **0.9966**, with a
+mean absolute monthly difference of 0.29pp; it runs about 0.66pp/year hotter only
+because it is gross rather than net of dividend withholding tax. It has *more*
+history than MSCI (312 ten-year windows vs 188), but it is USD-only, so
+converting to EUR via ECB rates from 1999 gives back most of that advantage
+(210 windows). Its terms are unclear too — the page says only "Copyright Eugene
+F. Fama and Kenneth R. French" — so that route starts with an email to Dartmouth.
 
 ## Historical calculation model
 

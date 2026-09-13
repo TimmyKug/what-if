@@ -46,6 +46,23 @@ function ratesFor(fx, code, months) {
  * where every input actually exists and the calendar is unbroken.
  */
 function buildSeries(data, instrument, currency) {
+  // Some sources publish the index already computed in each currency. That is
+  // strictly better than converting: no exchange-rate series in the middle, so
+  // no conversion error and no history lost where the FX history starts later.
+  const denominated = instrument.byCurrency?.[currency];
+  if (denominated) {
+    const [from, to] = longestRun(instrument.months);
+    const months = instrument.months.slice(from, to);
+    const prices = denominated.slice(from, to);
+    return {
+      months,
+      returns: prices.slice(1).map((p, i) => p / prices[i] - 1),
+      converted: false,
+      denominated: true,
+      droppedForFx: 0,
+    };
+  }
+
   const native = ratesFor(data.fx, instrument.currency, instrument.months);
   const display = ratesFor(data.fx, currency, instrument.months);
 
@@ -68,6 +85,7 @@ function buildSeries(data, instrument, currency) {
     months: kept,
     returns,
     converted: instrument.currency !== currency,
+    denominated: false,
     droppedForFx: instrument.months.length - months.length,
   };
 }

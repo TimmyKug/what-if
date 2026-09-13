@@ -37,3 +37,8 @@ There is no install, lint, or build step — no dependencies, no bundler.
   as well as in the legend.
 - Keep provider credentials server-side and out of committed files if a live data
   path is ever added.
+- The default MSCI series comes from an undocumented MSCI endpoint and is
+  licensed for neither redistribution nor public deployment. It is fine for
+  personal use; see "On the MSCI source" in `README.md` before publishing.
+- Prefer a natively denominated series over FX conversion when a source offers
+  one — `buildSeries` already picks `byCurrency` ahead of the exchange-rate path.
