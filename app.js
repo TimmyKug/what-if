@@ -564,8 +564,15 @@ function renderAssumptions(series, result, { instrument, currency, horizon, long
   if (spanYears < 10) {
     warnings.push(`This series offers ${result.windows.toLocaleString()} start dates for a plan of ${durationLabel(horizon)}, spanning ${spanYears.toFixed(1)} years. Neighbouring windows share almost all of their history, so "best" and "worst" describe two particular start dates rather than the full range of what is possible.`);
   }
-  if (result.depleted) {
-    warnings.push(`The money ran out before the end in ${result.depleted.toLocaleString()} of ${result.windows.toLocaleString()} timelines. Those are shown flat at zero from the point the portfolio could no longer cover the withdrawal.`);
+  if (result.depleted === result.windows && result.paidIn.at(-1) === 0) {
+    warnings.push(
+      `This plan never puts money into the market — it only takes money out, and there is none to take. Every line sits at zero because nothing was ever invested. Add a starting amount or a payment in before the withdrawals begin.`,
+    );
+  } else if (result.depleted) {
+    warnings.push(
+      `The money ran out before the end in ${result.depleted.toLocaleString()} of ${result.windows.toLocaleString()} timelines. ` +
+      `A withdrawal bigger than the balance takes only what is there, so those lines sit at zero from that point and the shortfall is not counted as money paid out.`,
+    );
   }
   if (instrument.assetClass === "crypto") {
     warnings.push(

@@ -121,6 +121,11 @@ function buildSeries(data, instrument, currency) {
  *
  * Within a month the return is applied first and the cash flow second, so money
  * never earns the return of the month it arrives in.
+ *
+ * A withdrawal larger than the balance takes only what is there. Money that was
+ * never in the portfolio cannot leave it, so the shortfall is not counted as paid
+ * out either — otherwise a plan that drains an empty account would report having
+ * withdrawn a fortune from it.
  */
 function runScenario(series, { steps, schedule }) {
   const { returns, keys } = series;
@@ -145,9 +150,10 @@ function runScenario(series, { steps, schedule }) {
     for (let t = 1; t <= steps; t++) {
       const i = s + t - 1;
       balance *= 1 + returns[i];
-      balance += schedule[t];
-      paid += schedule[t];
-      if (balance < 0) { balance = 0; depleted = 1; }
+      const flow = balance + schedule[t] < 0 ? -balance : schedule[t];
+      if (flow !== schedule[t]) depleted = 1;
+      balance += flow;
+      paid += flow;
       sum[t] += balance; paidSum[t] += paid;
       if (balance < low[t]) low[t] = balance;
       if (balance > high[t]) high[t] = balance;
@@ -167,9 +173,10 @@ function runScenario(series, { steps, schedule }) {
     for (let t = 1; t <= steps; t++) {
       const i = start + t - 1;
       balance *= 1 + returns[i];
-      balance += schedule[t];
-      paid += schedule[t];
-      if (balance < 0) { balance = 0; depletedAt ??= t; }
+      const flow = balance + schedule[t] < 0 ? -balance : schedule[t];
+      if (flow !== schedule[t]) depletedAt ??= t;
+      balance += flow;
+      paid += flow;
       path[t] = balance; paidIn[t] = paid;
     }
     return { path, paidIn, depletedAt, startKey: keys[start], endKey: keys[start + steps] };

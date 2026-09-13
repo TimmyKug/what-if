@@ -49,6 +49,13 @@ check("return is applied before the contribution",
 const drain = { keys: [1, 2, 3, 4], returns: [0, 0, 0] };
 const drainRun = runScenario(drain, { steps: 3, schedule: monthly(150, -100, 3) });
 check("a portfolio that runs dry stops at zero", String(drainRun.paths.median) === "150,50,0,0");
+check("a dry portfolio only pays out what it had", String(drainRun.paidIn) === "150,50,0,0");
+
+// Withdrawing from nothing is not a withdrawal, so neither side should move.
+const empty = runScenario(flat, { steps: 3, schedule: [0, -100, -100, -100] });
+check("withdrawing from an empty portfolio moves nothing", String(empty.paths.median) === "0,0,0,0");
+check("and is not counted as money paid out", String(empty.paidIn) === "0,0,0,0");
+check("but is still reported as running dry", empty.depleted === 1);
 check("a lump sum lands in the month it is scheduled",
   runScenario(flat, { steps: 3, schedule: [0, 0, 250, 0] }).paths.median.at(-1) === 250);
 check("a wait is just a run of zeroes",
