@@ -8,11 +8,17 @@
 
 import { normalise, keyLabel, buildSeries, runScenario, observationsPerYear } from "./engine.js";
 
+/**
+ * Three lines, validated against the dark surface across *all* pairs rather than
+ * adjacent ones — every line is on screen at once, so every pair has to separate.
+ * That rules out the obvious green/red for best/worst: they sit at ΔE 4.7 under
+ * deuteranopia. Amber carries "worst" instead (it reads as caution anyway) and
+ * violet the neutral middle; the worst pair is then amber↔green at ΔE 9.1.
+ */
 const SERIES = [
   { key: "best", label: "Best", color: "#00b070" },
-  { key: "average", label: "Average", color: "#c58203" },
-  { key: "median", label: "Median", color: "#708ee1" },
-  { key: "worst", label: "Worst", color: "#e86054" },
+  { key: "average", label: "Average", color: "#9085e9" },
+  { key: "worst", label: "Worst", color: "#c58203" },
 ];
 
 const PAID_IN = { key: "paidIn", label: "Paid in", color: "#7d8a8d" };
@@ -477,12 +483,12 @@ async function render() {
     `${yearsLabel(years)} of ${instrument.name} in ${input.currency}, buying every ${CADENCE_WORD[input.cadence]}, ` +
     `replayed from all ${result.windows.toLocaleString()} start dates in the data.`;
   ui.chartCaption.textContent =
-    `Best, median and worst are single real timelines — the start dates that ended highest, in the middle and lowest. ` +
+    `Best and worst are single real timelines — the start dates that ended highest and lowest. ` +
     `Average is the mean of all ${result.windows.toLocaleString()} timelines, and the shaded area covers every one of them.`;
   ui.chartDesc.textContent =
     `Line chart of portfolio value over ${yearsLabel(years)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
-    `average ${money.format(result.paths.average.at(-1))}, median ${money.format(result.paths.median.at(-1))}, ` +
-    `worst ${money.format(result.paths.worst.at(-1))}, against ${money.format(result.paidIn.at(-1))} paid in.`;
+    `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))}, ` +
+    `against ${money.format(result.paidIn.at(-1))} paid in. The median outcome was ${money.format(result.paths.median.at(-1))}.`;
   ui.windowsNote.textContent =
     `Tested against ${result.windows.toLocaleString()} overlapping ${yearsAdj(years)} periods from ${keyLabel(series.keys[0], series.daily)}.`;
   // Buying daily at the same figure is ~21x the money, so state the equivalent

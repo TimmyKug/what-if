@@ -42,8 +42,10 @@ There is no install, lint, or build step — no dependencies, no bundler.
   thousands of windows, and keeping every balance path would run to hundreds of
   megabytes. Pass one aggregates, pass two replays only the three drawn paths.
 - Chart series colors are validated against the dark surface for colorblind
-  separation; re-validate before changing them, and keep each line direct-labeled
-  as well as in the legend.
+  separation with `--pairs all`, not the default adjacent-pairs mode: every line
+  is on screen at once, so every pair has to separate, and adjacent-only checking
+  once let an amber/red pair through at ΔE 4.5. Re-validate before changing them,
+  and keep each line direct-labeled as well as in the legend.
 - Keep provider credentials server-side and out of committed files if a live data
   path is ever added.
 - The default MSCI series comes from an undocumented MSCI endpoint and is
