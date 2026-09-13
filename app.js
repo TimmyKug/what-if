@@ -371,7 +371,7 @@ function isSimplePlan() {
 function setMode(pro) {
   proMode = pro;
   ui.modeToggle.setAttribute("aria-pressed", String(pro));
-  ui.modeToggle.textContent = pro ? "Simple" : "Pro mode";
+  ui.modeToggle.textContent = pro ? "Switch to simple mode" : "Switch to pro mode";
   ui.simplePlan.hidden = pro;
   ui.plan.hidden = !pro;
   ui.addEvent.hidden = !pro;
