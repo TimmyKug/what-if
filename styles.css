@@ -1,6 +1,6 @@
-/* What if? — a calm dark financial instrument.
-   The look is deliberately single-mode: the near-black canvas is the design,
-   so there is no light variant to swap in. */
+/* What if? — a calm financial instrument, in the timothykugler.de palette.
+   Light and dark: the theme follows the system until the visitor picks one with
+   the site header's toggle (/nav.js), which sets data-theme on <html>. */
 
 html {
   /* Every length in this file is in rem, so this one value scales the page. */
@@ -8,31 +8,99 @@ html {
 }
 
 :root {
+  color-scheme: light;
+
+  --bg: #f6f4ef;
+  --panel: #ffffff;
+  --panel-raised: #faf8f4;
+  --line: #e2ded4;
+  --line-soft: #ece8df;
+
+  --ink: #14233a;
+  --ink-2: #4a5568;
+  --ink-3: #7a8291;
+
+  --accent: #1f3a63;
+  --accent-ink: #ffffff;
+  --accent-rgb: 31 58 99;
+  --neg: #b83a2e;
+  --neg-rgb: 184 58 46;
+  --popover-shadow: 0 10px 26px rgb(20 35 58 / 0.16);
+
+  /* The dark-surface series, darkened in OKLCH lightness to hold contrast on white
+     while keeping their hues, so the CVD separation carries over. */
+  --s-best: #00875a;
+  --s-average: #6b5fd6;
+  --s-worst: #a86500;
+  --s-worst-rgb: 168 101 0;
+  --s-paid: #7a8291;
+  --s-fixed: #98a0ab;
+
+  --radius: 0.875rem;
+  --radius-sm: 0.5625rem;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0e131a;
+    --panel: #161d27;
+    --panel-raised: #1c2430;
+    --line: #283242;
+    --line-soft: #202a38;
+
+    --ink: #e9edf3;
+    --ink-2: #a9b2c0;
+    --ink-3: #7d8797;
+
+    --accent: #93b6ea;
+    --accent-ink: #0e131a;
+    --accent-rgb: 147 182 234;
+    --neg: var(--neg);
+    --neg-rgb: 232 96 84;
+    --popover-shadow: 0 10px 26px rgb(0 0 0 / 0.5);
+
+    /* Series steps validated for this surface (OKLCH L 0.48–0.67, CVD-separated). */
+    --s-best: #00b070;
+    --s-average: #9085e9;
+    --s-worst: #c58203;
+    --s-worst-rgb: 197 130 3;
+    --s-paid: #7d8a8d;
+    --s-fixed: #9aa4a3;
+  }
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #0a0d0f;
-  --panel: #111619;
-  --panel-raised: #182023;
-  --line: #222b2f;
-  --line-soft: #1a2226;
+  --bg: #0e131a;
+  --panel: #161d27;
+  --panel-raised: #1c2430;
+  --line: #283242;
+  --line-soft: #202a38;
 
-  --ink: #eaeee9;
-  --ink-2: #98a4a5;
-  --ink-3: #6a7679;
+  --ink: #e9edf3;
+  --ink-2: #a9b2c0;
+  --ink-3: #7d8797;
 
-  --accent: #34e5a1;
-  --accent-ink: #05231a;
+  --accent: #93b6ea;
+  --accent-ink: #0e131a;
+  --accent-rgb: 147 182 234;
+  --neg: var(--neg);
+  --neg-rgb: 232 96 84;
+  --popover-shadow: 0 10px 26px rgb(0 0 0 / 0.5);
 
   /* Series steps validated for this surface (OKLCH L 0.48–0.67, CVD-separated). */
   --s-best: #00b070;
   --s-average: #9085e9;
   --s-worst: #c58203;
+  --s-worst-rgb: 197 130 3;
   --s-paid: #7d8a8d;
-
-  --radius: 0.875rem;
-  --radius-sm: 0.5625rem;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --s-fixed: #9aa4a3;
 }
 
 * { box-sizing: border-box; }
@@ -65,10 +133,10 @@ body {
   height: 1.25rem;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 4px rgb(52 229 161 / 0.12);
+  box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / 0.14);
 }
 
-.brand-name { font-weight: 600; letter-spacing: -0.01em; }
+.brand-name { font: 600 1.05rem/1 var(--serif); letter-spacing: -0.01em; }
 
 /* ---------- layout ---------- */
 
@@ -175,7 +243,7 @@ input:focus-visible {
    field already shows. */
 .money-input.is-positive .money-symbol { color: var(--accent); }
 .money-input.is-negative .money-symbol,
-.money-input.is-negative input { color: #e86054; }
+.money-input.is-negative input { color: var(--neg); }
 
 .money-input input { padding-left: 1.875rem; font-variant-numeric: tabular-nums; }
 
@@ -256,7 +324,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   padding: 1rem 1.125rem 0.625rem;
 }
 
-.panel-title { margin: 0; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
+.panel-title { margin: 0; font: 600 1.05rem/1.3 var(--serif); letter-spacing: -0.01em; }
 .panel-sub { margin: 3px 0 0; font-size: 0.7812rem; color: var(--ink-3); }
 
 /* ---------- legend ---------- */
@@ -314,7 +382,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   background: var(--panel-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  box-shadow: 0 10px 26px rgb(0 0 0 / 0.5);
+  box-shadow: var(--popover-shadow);
   pointer-events: none;
   font-size: 0.75rem;
 }
@@ -381,7 +449,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-of
   margin-top: 0.875rem;
   padding: 0.625rem 0.75rem;
   border-left: 2px solid var(--s-worst);
-  background: rgb(197 130 3 / 0.07);
+  background: rgb(var(--s-worst-rgb) / 0.07);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: 0.7812rem;
   color: var(--ink-2);
@@ -581,8 +649,8 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
    wears the accent and says what pressing it does. */
 .mode-toggle {
   padding: 0.25rem 0.65rem;
-  background: rgb(52 229 161 / 0.1);
-  border: 1px solid rgb(52 229 161 / 0.4);
+  background: rgb(var(--accent-rgb) / 0.1);
+  border: 1px solid rgb(var(--accent-rgb) / 0.4);
   border-radius: 999px;
   color: var(--accent);
   font: inherit;
@@ -595,7 +663,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 .mode-toggle::after { content: " ›"; opacity: 0.7; }
 
 .mode-toggle:hover {
-  background: rgb(52 229 161 / 0.18);
+  background: rgb(var(--accent-rgb) / 0.18);
   border-color: var(--accent);
 }
 
@@ -630,8 +698,8 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 }
 
 .direction button:hover { color: var(--ink); }
-.direction button[data-dir="in"][aria-pressed="true"] { background: rgb(52 229 161 / 0.16); color: var(--accent); }
-.direction button[data-dir="out"][aria-pressed="true"] { background: rgb(232 96 84 / 0.16); color: #e86054; }
+.direction button[data-dir="in"][aria-pressed="true"] { background: rgb(var(--accent-rgb) / 0.16); color: var(--accent); }
+.direction button[data-dir="out"][aria-pressed="true"] { background: rgb(var(--neg-rgb) / 0.16); color: var(--neg); }
 .direction button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .field-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
@@ -675,7 +743,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   transition: translate 0.12s ease, background 0.12s ease;
 }
 
-.switch input:checked { background: rgb(52 229 161 / 0.2); border-color: var(--accent); }
+.switch input:checked { background: rgb(var(--accent-rgb) / 0.2); border-color: var(--accent); }
 .switch input:checked::after { translate: 0.75rem -50%; background: var(--accent); }
 .switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .switch:hover { color: var(--ink); }
@@ -716,7 +784,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 .saved-item .saved-open { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .saved-item .saved-open:hover { color: var(--accent); }
 .saved-item .saved-remove { color: var(--ink-3); font-size: 0.8rem; }
-.saved-item .saved-remove:hover { color: #e86054; }
+.saved-item .saved-remove:hover { color: var(--neg); }
 
 .saved-empty { font-size: 0.6875rem; color: var(--ink-3); }
 
@@ -742,7 +810,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 .save-confirm {
   padding: 0.4rem 0.6rem;
-  background: rgb(52 229 161 / 0.16);
+  background: rgb(var(--accent-rgb) / 0.16);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   color: var(--accent);
@@ -751,7 +819,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   cursor: pointer;
 }
 
-.save-confirm:hover { background: rgb(52 229 161 / 0.26); }
+.save-confirm:hover { background: rgb(var(--accent-rgb) / 0.26); }
 
 .save-cancel {
   padding: 0.25rem;
@@ -796,7 +864,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 }
 
 .about::backdrop { background: rgb(0 0 0 / 0.6); }
-.about h2 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
+.about h2 { margin: 0 0 1rem; font: 600 1.3rem/1.2 var(--serif); letter-spacing: -0.01em; }
 .about p { margin: 0 0 0.9rem; color: var(--ink-2); font-size: 0.82rem; line-height: 1.65; }
 
 .about-close {
@@ -816,7 +884,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   display: inline-block;
   margin: 0.4rem 0 1.2rem;
   padding: 0.5rem 0.9rem;
-  background: rgb(52 229 161 / 0.14);
+  background: rgb(var(--accent-rgb) / 0.14);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   color: var(--accent);
@@ -825,7 +893,7 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   text-decoration: none;
 }
 
-.coffee:hover { background: rgb(52 229 161 / 0.24); }
+.coffee:hover { background: rgb(var(--accent-rgb) / 0.24); }
 
 .about-foot { margin: 0 !important; font-size: 0.7rem !important; color: var(--ink-3) !important; }
 

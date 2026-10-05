@@ -9,7 +9,7 @@
 
 ## Layout
 
-- `index.html`, `styles.css` — markup and the dark theme.
+- `index.html`, `styles.css` — markup and the light and dark themes (timothykugler.de palette).
 - `engine.js` — pure logic: calendar helpers, currency conversion, the backtest.
   No DOM, so it is importable from Node.
 - `app.js` — data loading, the SVG chart, and the controls.
@@ -83,7 +83,8 @@ The refresh workflow stages a fetch, verifies it against the committed copy, and
   sees it.
 - `runScenario` is two-pass: pass one aggregates, pass two replays only the three
   drawn paths, which keeps memory flat in the number of windows.
-- Chart series colors are validated against the dark surface for colorblind
+- Chart series colors are validated against both surfaces (`#ffffff` light,
+  `#161d27` dark), each theme with its own steps, for colorblind
   separation with `--pairs all`, not the default adjacent-pairs mode: every line
   is on screen at once, so every pair has to separate, and adjacent-only checking
   once let an amber/red pair through at ΔE 4.5. Re-validate before changing them,
@@ -136,7 +137,7 @@ The exemption is what the storage is *for*: Art. 5(3) excludes storage strictly 
 WP29 Opinion 04/2012 lists user-input and interface-preference storage among its examples.
 
 So the load-bearing design decision is that **nothing is written before the click**.
-The whole footprint is two keys, `what-if:scenarios` and `what-if:told`, both written only then.
+The whole footprint is three keys, all written only then: `what-if:scenarios` and `what-if:told`, and `theme`, which the shared site header (`/nav.js` on timothykugler.de) writes when its light/dark toggle is clicked — an interface preference, the WP29 example.
 Storing anything on arrival — a visitor id, a session marker, an analytics call — would move this out of the exemption and require a banner.
 Adding analytics of any kind is the line to watch.
 

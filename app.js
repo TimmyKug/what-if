@@ -16,15 +16,15 @@ import { normalise, keyLabel, buildSeries, runScenario, OBSERVATIONS_PER_YEAR } 
  * violet the neutral middle; the worst pair is then amber↔green at ΔE 9.1.
  */
 const SERIES = [
-  { key: "best", label: "Best", color: "#00b070" },
-  { key: "average", label: "Average", color: "#9085e9" },
-  { key: "worst", label: "Worst", color: "#c58203" },
+  { key: "best", label: "Best", color: "var(--s-best)" },
+  { key: "average", label: "Average", color: "var(--s-average)" },
+  { key: "worst", label: "Worst", color: "var(--s-worst)" },
 ];
 
-const PAID_IN = { key: "paidIn", label: "Paid in", color: "#7d8a8d" };
+const PAID_IN = { key: "paidIn", label: "Paid in", color: "var(--s-paid)" };
 
 /** The line a savings calculator would have drawn, for comparison. */
-const FIXED = { key: "fixed", label: "Fixed rate", color: "#9aa4a3" };
+const FIXED = { key: "fixed", label: "Fixed rate", color: "var(--s-fixed)" };
 
 /**
  * Only currencies with a usable consumer price index, so "today's money" works
@@ -130,9 +130,14 @@ const host = document.getElementById("chart-host");
 const tooltip = document.getElementById("tooltip");
 const NS = "http://www.w3.org/2000/svg";
 
+// Series colours are CSS variables so they follow the theme. SVG presentation
+// attributes cannot hold var(), so a fill or stroke that uses one goes on style.
 const el = (name, attrs = {}, text) => {
   const node = document.createElementNS(NS, name);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  for (const [k, v] of Object.entries(attrs)) {
+    if ((k === "fill" || k === "stroke") && String(v).startsWith("var(")) node.style.setProperty(k, v);
+    else node.setAttribute(k, v);
+  }
   if (text != null) node.textContent = text;
   return node;
 };
@@ -213,7 +218,7 @@ function drawChart(result, years) {
   band.push(`L${x(steps)},${y(result.envelope.high[steps])}`);
   for (let t = steps; t >= 0; t -= stride) band.push(`L${x(t)},${y(result.envelope.low[t])}`);
   band.push(`L${x(0)},${y(result.envelope.low[0])}`);
-  svg.append(el("path", { class: "series-band", d: `${band.join("")}Z`, fill: "#7d8a8d" }));
+  svg.append(el("path", { class: "series-band", d: `${band.join("")}Z`, fill: "var(--s-paid)" }));
 
   const pathFor = (values) => {
     let d = "";
