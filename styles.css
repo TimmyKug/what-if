@@ -117,27 +117,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- top bar ---------- */
-
-.topbar {
-  display: flex;
-  align-items: center;
-  padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.brand { display: flex; align-items: center; gap: 0.5625rem; }
-
-.brand-mark {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / 0.14);
-}
-
-.brand-name { font: 600 1.05rem/1 var(--serif); letter-spacing: -0.01em; }
-
 /* ---------- layout ---------- */
 
 .workspace {
@@ -834,10 +813,10 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 /* ---------- why this exists ---------- */
 
-.topbar { justify-content: space-between; }
+/* Quiet text, not buttons. /nav.js restyles these once they are in the site
+   header; this is how they look if it does not load (local dev, offline). */
+#project-links { display: flex; gap: 0.9rem; padding: 0.875rem 1.25rem; }
 
-/* Quiet text, not buttons. A slim header carries two words better than it
-   carries two bordered pills. */
 .about-open {
   padding: 0;
   background: none;
@@ -897,8 +876,5 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 .about-foot { margin: 0 !important; font-size: 0.7rem !important; color: var(--ink-3) !important; }
 
-/* ---------- header links ---------- */
-
-.topbar-links { display: flex; align-items: center; gap: 0.9rem; }
 .about-foot a { color: var(--ink-2); }
 .about-foot a:hover { color: var(--accent); }

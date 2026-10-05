@@ -7,22 +7,17 @@
 <meta name="description" content="Replay a saving plan against decades of real market history and see the average, median, best and worst timeline it would have produced." />
 <link rel="stylesheet" href="/fonts/fonts.css" />
 <link rel="stylesheet" href="styles.css" />
-<!-- The timothykugler.de header. It also applies the visitor's saved theme before
-     the first paint; first-party, and it writes to localStorage only when its toggle
-     is clicked. -->
-<script src="/nav.js" data-width="full"></script>
+<!-- The timothykugler.de header, with this app's name and links in it. It also
+     applies the visitor's saved theme before the first paint; first-party, and it
+     writes to localStorage only when its toggle is clicked. -->
+<script src="/nav.js" data-title="What if?" data-links="#project-links" data-width="full"></script>
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="brand-mark" aria-hidden="true"></span>
-    <span class="brand-name">What if?</span>
-  </div>
-  <nav class="topbar-links">
-    <button type="button" id="about-open" class="about-open">Why this exists</button>
-    <a class="about-open" href="https://github.com/TimmyKug/what-if">Source</a>
-  </nav>
-</header>
+<!-- This app's own links. /nav.js moves them into the site header. -->
+<nav id="project-links" aria-label="What if?">
+  <button type="button" id="about-open" class="about-open">Why this exists</button>
+  <a class="about-open" href="https://github.com/TimmyKug/what-if">Source</a>
+</nav>
 
 <dialog id="about" class="about">
   <button type="button" id="about-close" class="about-close" aria-label="Close">✕</button>
