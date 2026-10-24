@@ -31,7 +31,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site
-          cp index.html app.js engine.js styles.css _site/
+          cp index.html app.js engine.js styles.css og.png _site/
           cp -R data _site/data
           # Stops Pages running the files through Jekyll.
           touch _site/.nojekyll
@@ -39,7 +39,7 @@ jobs:
 
       - name: Check nothing is missing
         run: |
-          for f in index.html app.js engine.js styles.css data/market-data.json; do
+          for f in index.html app.js engine.js styles.css og.png data/market-data.json; do
             test -s "_site/$f" || { echo "missing or empty: $f"; exit 1; }
           done
 

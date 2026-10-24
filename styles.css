@@ -878,3 +878,13 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
 
 .about-foot a { color: var(--ink-2); }
 .about-foot a:hover { color: var(--accent); }
+
+/* Read by screen readers and search engines, not shown. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
