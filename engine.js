@@ -46,6 +46,38 @@ function longestRun(keys) {
 }
 
 
+/** `k` moved by `months` calendar months, either direction. */
+function shiftKey(k, months) {
+  const index = keyYear(k) * 12 + keyMonth(k) - 1 + months;
+  return Math.floor(index / 12) * 100 + (index % 12) + 1;
+}
+
+/**
+ * The part of a series between two month keys, both inclusive; either may be
+ * null for "no limit". Everything travels together — keys, the returns between
+ * them, and the price index — so the result is an ordinary series and the
+ * engine needs no notion of a range.
+ *
+ * Restricting the history to a range means every replayed window has to fit
+ * inside it, start and finish both, which is what "analyse 2000 to 2010" means.
+ */
+function sliceSeries(series, from = null, to = null) {
+  const { keys } = series;
+  let lo = from == null ? 0 : keys.findIndex((k) => k >= from);
+  if (lo < 0) lo = keys.length;
+  let hi = to == null ? keys.length : keys.findIndex((k) => k > to);
+  if (hi < 0) hi = keys.length;
+  if (lo === 0 && hi === keys.length) return series;
+  hi = Math.max(lo, hi);
+  return {
+    ...series,
+    keys: keys.slice(lo, hi),
+    // returns[i] runs from keys[i] to keys[i + 1].
+    returns: series.returns.slice(lo, Math.max(lo, hi - 1)),
+    cpi: series.cpi ? series.cpi.slice(lo, hi) : null,
+  };
+}
+
 /* ------------------------------------------------------- currency handling */
 
 /** Values of `code` per key, carrying the last known rate across gaps. */
@@ -227,4 +259,4 @@ function runScenario(series, { steps, schedule }) {
 /** Monthly data, so this is a constant — kept as a name rather than a literal 12. */
 const OBSERVATIONS_PER_YEAR = 12;
 
-export { normalise, keyLabel, keyYear, longestRun, ratesFor, buildSeries, runScenario, OBSERVATIONS_PER_YEAR };
+export { normalise, keyLabel, keyYear, shiftKey, longestRun, sliceSeries, ratesFor, buildSeries, runScenario, OBSERVATIONS_PER_YEAR };

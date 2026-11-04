@@ -44,6 +44,8 @@ Then describe the plan.
 - **Pro mode** — a list of cash-flow events, which can express waiting before you start, a lump sum partway through, drawing an income back out, or all three.
 - **Show in today's money** — deflates every figure to the purchasing power of the month its own window began.
   The same decade that ends near €346,000 nominally ends near €217,000 in real terms.
+- **History used** — limit the replay to a stretch of history: the last N years in simple mode, any from–to months in pro mode.
+  Every timeline has to start and finish inside it, and the app states what the full history's worst case was, so a range that skips a crash says so.
 - **Compare with a fixed rate** — draws the line a compound-interest calculator would have given you, through the historical range.
 
 Thirteen series to choose from, in eight currencies, going back as far as 1926.
@@ -54,6 +56,7 @@ Scenarios can also be saved by name in the browser; nothing is stored until you 
 Two things it says on screen rather than hiding:
 
 - A series that begins after a crash will flatter a plan, so wherever a longer comparable one exists, the app names it and states its worst outcome.
+  A history range you choose yourself gets the same treatment against the series' full history.
 - Overlapping windows are not independent samples.
   Three hundred-odd ten-year windows drawn from 36 years are that many views of the same 36 years.
 

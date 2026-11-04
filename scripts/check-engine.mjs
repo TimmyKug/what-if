@@ -9,7 +9,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { normalise, longestRun, ratesFor, buildSeries, runScenario, OBSERVATIONS_PER_YEAR } from "../engine.js";
+import { normalise, shiftKey, longestRun, sliceSeries, ratesFor, buildSeries, runScenario, OBSERVATIONS_PER_YEAR } from "../engine.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DATA_DIR = process.env.DATA_DIR ?? "data";
@@ -26,6 +26,10 @@ const check = (name, ok, detail = "") => {
 console.log("calendar");
 check("longestRun keeps a gap-free run whole", String(longestRun([202001, 202002, 202003])) === "0,3");
 check("longestRun picks the longer side of a gap", String(longestRun([202001, 202106, 202107, 202108])) === "1,4");
+
+check("shiftKey steps back across a year boundary", shiftKey(202002, -3) === 201911);
+check("shiftKey steps forward across a year boundary", shiftKey(201911, 14) === 202101);
+check("shiftKey by whole years keeps the month", shiftKey(202610, -240) === 200610);
 
 console.log("\nfx");
 const filled = ratesFor({ X: { keys: [202001, 202003], values: [2, 4] } }, "X", [201912, 202001, 202002, 202003]);
@@ -114,6 +118,42 @@ check("paid-in is deflated too", money([100, 100, 100, 200]).paidIn.at(-1) === 1
 //
 // The sharper guard against a shifted calendar is the lag scan below: whatever
 // the correlation, it has to peak at lag zero.
+console.log("\nranges");
+{
+  const s = { keys: [202001, 202002, 202003, 202004, 202005], returns: [0.1, 0.2, 0.3, 0.4], cpi: [1, 2, 3, 4, 5] };
+  const mid = sliceSeries(s, 202002, 202004);
+  check("a range keeps its keys, both ends inclusive", String(mid.keys) === "202002,202003,202004");
+  check("and only the returns between those keys", String(mid.returns) === "0.2,0.3");
+  check("and the price index alongside", String(mid.cpi) === "2,3,4");
+  check("no limits returns the series untouched", sliceSeries(s, null, null) === s);
+  check("an open start runs from the beginning", String(sliceSeries(s, null, 202002).keys) === "202001,202002");
+  check("an open end runs to the last month", String(sliceSeries(s, 202004).returns) === "0.4");
+  check("limits between months snap inward", String(sliceSeries(s, 201906, 202002).keys) === "202001,202002");
+  const none = sliceSeries(s, 202004, 202002);
+  check("a reversed range is empty rather than broken", none.keys.length === 0 && none.returns.length === 0);
+  check("and the engine declines it", runScenario(none, { steps: 1, schedule: [0, 1] }) === null);
+  check("a range past the data is empty", sliceSeries(s, 203001).keys.length === 0);
+  const windows = runScenario(sliceSeries(s, 202002), { steps: 2, schedule: [0, 1, 1] }).windows;
+  check("every window fits inside the range", windows === 2);
+}
+{
+  const world = buildSeries(data, data.instruments.find((i) => i.id === "ff-developed"), "EUR", true);
+  const last = world.keys.at(-1);
+  const recent = sliceSeries(world, shiftKey(last, -20 * 12));
+  check("the last 20 years is 240 monthly returns", recent.returns.length === 240, `${recent.returns.length}`);
+  const steps = 10 * OBSERVATIONS_PER_YEAR;
+  const schedule = monthly(0, 100, steps);
+  check("and gives 121 ten-year start dates", runScenario(recent, { steps, schedule }).windows === 121);
+  const start = recent.keys.length && world.keys.indexOf(recent.keys[0]);
+  const whole = runScenario(world, { steps, schedule });
+  const part = runScenario(recent, { steps, schedule });
+  // Deflating each window by its own start month means a slice must reproduce
+  // the full series' figures for the windows it shares — not merely similar ones.
+  const shared = whole.finals[start] === part.finals[0];
+  check("a shared window ends at the same real value either way", shared);
+  check("a narrower range cannot find a worse worst case", part.paths.worst.at(-1) >= whole.paths.worst.at(-1));
+}
+
 console.log("\ncross-checks against MSCI World");
 const blocks = (a, b, size, lag = 0) => {
   const index = new Map(b.keys.map((k, i) => [k, i]));
