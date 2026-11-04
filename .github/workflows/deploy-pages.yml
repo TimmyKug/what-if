@@ -41,6 +41,33 @@ jobs:
           touch _site/.nojekyll
           echo "Site contents:" && find _site -type f | sort && du -sh _site
 
+      # The server caches index.html for 10 minutes but JS and CSS for 4 hours,
+      # so after a deploy a browser could pair the new page with the old script —
+      # new markup, old behaviour, or an outright error. Tagging every reference
+      # with the commit makes each deploy's files new URLs. Unchanged files are
+      # refetched once per deploy, which at this size costs nothing.
+      # HEAD, not github.sha: called from the data refresh, github.sha is the
+      # commit before the data it just pushed.
+      - name: Tag file references with the commit
+        run: |
+          v="$(git rev-parse --short=12 HEAD)"
+          sed -i \
+            -e "s|href=\"styles.css\"|href=\"styles.css?v=$v\"|" \
+            -e "s|src=\"app.js\"|src=\"app.js?v=$v\"|" \
+            _site/index.html
+          sed -i \
+            -e "s|from \"./engine.js\"|from \"./engine.js?v=$v\"|" \
+            -e "s|fetch(\"data/market-data.json\")|fetch(\"data/market-data.json?v=$v\")|" \
+            _site/app.js
+          # A renamed or reworded reference would otherwise slip through untagged.
+          for ref in "styles.css?v=$v" "app.js?v=$v"; do
+            grep -qF "$ref" _site/index.html || { echo "not tagged in index.html: $ref"; exit 1; }
+          done
+          for ref in "./engine.js?v=$v" "data/market-data.json?v=$v"; do
+            grep -qF "$ref" _site/app.js || { echo "not tagged in app.js: $ref"; exit 1; }
+          done
+          echo "Tagged with $v"
+
       - name: Check nothing is missing
         run: |
           for f in index.html app.js engine.js styles.css og.png data/market-data.json; do
