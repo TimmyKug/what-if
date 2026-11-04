@@ -70,7 +70,14 @@ jobs:
           Fetched and verified by .github/workflows/refresh-data.yml."
           git push
 
+  # A called workflow can only narrow the caller's permissions, never widen them.
+  # Without this block the run asks for less than deploy-pages.yml needs and
+  # GitHub rejects the whole workflow at startup, refresh job included.
   deploy:
     needs: refresh
     if: needs.refresh.outputs.changed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     uses: ./.github/workflows/deploy-pages.yml

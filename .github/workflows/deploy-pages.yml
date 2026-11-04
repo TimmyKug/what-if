@@ -26,7 +26,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # The branch tip, not the triggering commit: called from the data refresh,
+      # the triggering commit is the one before the data it just pushed.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Assemble the site
         run: |
