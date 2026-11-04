@@ -179,7 +179,8 @@ body {
 .hint { margin: 0; font-size: 0.7188rem; line-height: 1.45; color: var(--ink-3); }
 
 select,
-input[type="number"] {
+input[type="number"],
+input[type="month"] {
   width: 100%;
   padding: 0.5625rem 0.625rem;
   background: var(--panel-raised);
@@ -888,3 +889,6 @@ select optgroup option { color: var(--ink); font-size: 0.875rem; letter-spacing:
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Month pickers are wider than the numbers above them; keep the text in. */
+.duration-part input[type="month"] { padding-inline: 0.3rem; font-size: 0.8125rem; min-width: 0; }

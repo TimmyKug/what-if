@@ -140,6 +140,24 @@
       <p class="hint" id="horizon-hint"></p>
     </fieldset>
 
+    <fieldset class="field duration-field">
+      <legend>History used</legend>
+      <select id="history-span" aria-label="History used">
+        <option value="">All of it</option>
+      </select>
+      <div class="duration" id="history-range" hidden>
+        <label class="duration-part">
+          <input id="history-from" type="month" placeholder="YYYY-MM" aria-label="History from" />
+          <span>from</span>
+        </label>
+        <label class="duration-part">
+          <input id="history-to" type="month" placeholder="YYYY-MM" aria-label="History to" />
+          <span>to</span>
+        </label>
+      </div>
+      <p class="hint" id="history-hint"></p>
+    </fieldset>
+
     <div class="field">
       <div class="plan-head">
         <span class="field-label">Saved scenarios</span>

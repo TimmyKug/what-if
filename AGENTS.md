@@ -37,7 +37,7 @@ No build step, no dependencies, no bundler.
 
 ```sh
 python3 -m http.server 8000   # ES modules need http://, not file://
-node scripts/check-engine.mjs # 89 assertions over the engine and the data
+node scripts/check-engine.mjs # 107 assertions over the engine and the data
 ```
 
 | Path | What it is |
@@ -77,8 +77,8 @@ The refresh workflow stages a fetch, verifies it against the committed copy, and
   committed copy, then promote — that comparison is what catches a source
   changing meaning while still returning valid JSON.
 - Every modeling shortcut must be visible in the "Data and assumptions" panel.
-  Price-return series, currency conversion, proxy instruments, thin history, and
-  depleted portfolios all warn there already.
+  Price-return series, currency conversion, proxy instruments, thin history, a
+  user-chosen history range, and depleted portfolios all warn there already.
 - Data normalises to integer keys (YYYYMM) via `normalise()` before the engine
   sees it.
 - `runScenario` is two-pass: pass one aggregates, pass two replays only the three

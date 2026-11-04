@@ -6,7 +6,7 @@
  * `node scripts/fetch-market-data.mjs`.
  */
 
-import { normalise, keyLabel, buildSeries, runScenario, OBSERVATIONS_PER_YEAR } from "./engine.js";
+import { normalise, keyLabel, shiftKey, buildSeries, sliceSeries, runScenario, OBSERVATIONS_PER_YEAR } from "./engine.js";
 
 /**
  * Three lines, validated against the dark surface across *all* pairs rather than
@@ -339,6 +339,11 @@ const ui = {
   years: document.getElementById("years"),
   months: document.getElementById("months"),
   horizonHint: document.getElementById("horizon-hint"),
+  historySpan: document.getElementById("history-span"),
+  historyRange: document.getElementById("history-range"),
+  historyFrom: document.getElementById("history-from"),
+  historyTo: document.getElementById("history-to"),
+  historyHint: document.getElementById("history-hint"),
   instrumentHint: document.getElementById("instrument-hint"),
   currencyHint: document.getElementById("currency-hint"),
   legend: document.getElementById("legend"),
@@ -405,6 +410,12 @@ function encodeState(input) {
   if (input.real) params.set("r", "1");
   if (input.fixed !== null) params.set("f", input.fixed);
   if (proMode) params.set("pro", "1");
+  if (proMode) {
+    if (ui.historyFrom.value) params.set("hf", ui.historyFrom.value);
+    if (ui.historyTo.value) params.set("ht", ui.historyTo.value);
+  } else if (ui.historySpan.value) {
+    params.set("h", ui.historySpan.value);
+  }
   params.set("p", plan.map((e) =>
     [e.cadence === "once" ? "o" : "m", (e.out ? -1 : 1) * Math.abs(e.amount), e.from,
      ...(e.cadence === "once" || e.to == null ? [] : [e.to])]
@@ -425,6 +436,11 @@ function applyState(search) {
   set(ui.currency, "c");
   set(ui.years, "y");
   set(ui.months, "m");
+  // A value the controls cannot hold — a span not on offer, a malformed month —
+  // lands as empty, which is "all of it".
+  set(ui.historySpan, "h", "");
+  set(ui.historyFrom, "hf", "");
+  set(ui.historyTo, "ht", "");
   ui.realTerms.checked = params.get("r") === "1";
   ui.fixedOn.checked = params.has("f");
   if (params.has("f")) ui.fixedRate.value = params.get("f");
@@ -575,6 +591,98 @@ function isSimplePlan() {
   return plan.every((e) =>
     (e.cadence === "once" && e.from === 0) ||
     (e.cadence === "monthly" && e.from === 1 && (e.to === null || e.to === undefined)));
+}
+
+/* ------------------------------------------------------------ history range */
+
+/**
+ * The stretch of history to replay. Simple mode offers "the last N years",
+ * counted back from the series' latest month so it follows the weekly refresh;
+ * pro mode takes two months, either of which may be left open.
+ *
+ * Every window has to fit inside the range, start and finish both, so a range
+ * that is short against the plan leaves few start dates — which is why the
+ * shortest spans are disabled rather than offered.
+ */
+const SPAN_YEARS = [50, 40, 30, 25, 20, 15, 10, 5];
+/** Fewest start dates a "last N years" option has to leave the plan. */
+const MIN_STARTS = 5 * OBSERVATIONS_PER_YEAR;
+
+const monthIndex = (k) => Math.floor(k / 100) * 12 + (k % 100);
+const toMonthValue = (k) => `${Math.floor(k / 100)}-${String(k % 100).padStart(2, "0")}`;
+const fromMonthValue = (v) => (/^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? Number(v.replace("-", "")) : null);
+
+/** The range the controls ask for, as inclusive month keys; null is open. */
+function chosenRange(full) {
+  if (proMode) return { from: fromMonthValue(ui.historyFrom.value), to: fromMonthValue(ui.historyTo.value) };
+  const years = Number(ui.historySpan.value);
+  if (!years || !full.keys.length) return { from: null, to: null };
+  return { from: shiftKey(full.keys.at(-1), -years * OBSERVATIONS_PER_YEAR), to: null };
+}
+
+/** The "last N years" option a pro-mode range amounts to, or 0 if none does. */
+function spanOfRange(full) {
+  const from = fromMonthValue(ui.historyFrom.value);
+  const to = fromMonthValue(ui.historyTo.value);
+  const last = full.keys.at(-1);
+  if (from == null || last == null || (to != null && to < last)) return 0;
+  const years = (monthIndex(last) - monthIndex(from)) / OBSERVATIONS_PER_YEAR;
+  return SPAN_YEARS.includes(years) ? years : 0;
+}
+
+/**
+ * Carries the range across a mode switch. Called from the toggle only — a
+ * restored scenario arrives with its own range already in the controls.
+ */
+function carryRange(toPro) {
+  const full = seriesCache?.series;
+  if (!full?.keys.length) return;
+  if (toPro) {
+    const years = Number(ui.historySpan.value);
+    ui.historyFrom.value = years ? toMonthValue(shiftKey(full.keys.at(-1), -years * OBSERVATIONS_PER_YEAR)) : "";
+    ui.historyTo.value = "";
+  } else {
+    const years = spanOfRange(full);
+    ui.historySpan.value = years ? String(years) : "";
+  }
+}
+
+function renderHistoryControls(full, series, requested) {
+  ui.historySpan.hidden = proMode;
+  ui.historyRange.hidden = !proMode;
+  const total = full.returns.length;
+  for (const option of ui.historySpan.options) {
+    const years = Number(option.value);
+    if (!years) continue;
+    const months = years * OBSERVATIONS_PER_YEAR;
+    // At or past the series' length it is the same as "all of it"; below the
+    // plan plus a few years it leaves a handful of near-identical windows.
+    option.disabled = months >= total || months - requested + 1 < MIN_STARTS;
+  }
+  if (full.keys.length) {
+    for (const input of [ui.historyFrom, ui.historyTo]) {
+      input.min = toMonthValue(full.keys[0]);
+      input.max = toMonthValue(full.keys.at(-1));
+    }
+  }
+
+  const available = full.keys.length
+    ? `This series runs ${keyLabel(full.keys[0])} to ${keyLabel(full.keys.at(-1))}.`
+    : "";
+  if (!proMode) {
+    ui.historyHint.textContent = series === full
+      ? available
+      : series.keys.length
+        ? `${keyLabel(series.keys[0])} to ${keyLabel(series.keys.at(-1))}. Every timeline has to start and finish inside it.`
+        : "";
+    return;
+  }
+  const custom = (ui.historyFrom.value || ui.historyTo.value) && !spanOfRange(full);
+  ui.historyHint.textContent = [
+    available,
+    "Leave either end empty for no limit.",
+    custom ? "Switching back to simple keeps a range only if it is one of the \u201clast N years\u201d." : "",
+  ].filter(Boolean).join(" ");
 }
 
 function setMode(pro) {
@@ -802,8 +910,17 @@ function renderTable(result) {
   }));
 }
 
-function renderAssumptions(series, result, { instrument, currency, horizon, longer }) {
+function renderAssumptions(series, result, { instrument, currency, horizon, longer, narrowed }) {
   const warnings = [];
+  if (narrowed) {
+    warnings.push(
+      `You limited the history to ${narrowed.from} to ${narrowed.to}, which leaves out ${narrowed.left.toLocaleString()} of the ${narrowed.total.toLocaleString()} start dates this series offers. ` +
+      `Over all of it, from ${narrowed.fullFrom}, the worst run over ${durationLabel(horizon)} ended at ${money.format(narrowed.worst)} against ${money.format(narrowed.paidIn)} paid in` +
+      (narrowed.worse > 0.5
+        ? ` — ${money.format(narrowed.worse)} worse than the worst shown here. A narrower range does not just blur the spread, it can leave out the crash altogether.`
+        : ` — the same as the worst shown here, so this range still contains the hardest stretch.`),
+    );
+  }
   if (longer) {
     warnings.push(
       `${longer.name} covers the same kind of portfolio from ${longer.from}, ${longer.extra.toLocaleString()} more start dates than this series. ` +
@@ -879,6 +996,25 @@ function renderAssumptions(series, result, { instrument, currency, horizon, long
  */
 const REFERENCE = "ff-developed";
 
+/**
+ * What the chosen range leaves out. A superset of windows can only have an
+ * equal or lower minimum, so the full history's worst case is never better.
+ */
+function narrowedHistory(full, series, steps, result) {
+  const run = runScenario(full, { steps, schedule: buildSchedule(plan, steps) });
+  if (!run) return null;
+  return {
+    from: keyLabel(series.keys[0]),
+    to: keyLabel(series.keys.at(-1)),
+    fullFrom: keyLabel(full.keys[0]),
+    left: run.windows - result.windows,
+    total: run.windows,
+    worst: run.paths.worst.at(-1),
+    paidIn: run.paidIn.at(-1),
+    worse: result.paths.worst.at(-1) - run.paths.worst.at(-1),
+  };
+}
+
 function longerHistory(instrument, input, steps, result) {
   if (instrument.id === REFERENCE) return null;
   if (instrument.assetClass === "crypto") return null; // not the same kind of thing
@@ -938,7 +1074,10 @@ function render() {
   if (seriesCache?.key !== cacheKey) {
     seriesCache = { key: cacheKey, series: buildSeries(data, instrument, input.currency, input.real) };
   }
-  const series = seriesCache.series;
+  const full = seriesCache.series;
+  const range = chosenRange(full);
+  const series = sliceSeries(full, range.from, range.to);
+  const narrowed = series !== full;
 
   ui.currencyHint.textContent = series.denominated
     ? `Computed in ${input.currency} at source, so no conversion is applied.`
@@ -954,9 +1093,12 @@ function render() {
     ? input
     : { years: Math.floor(steps / perYear), months: steps % perYear };
 
-  ui.horizonHint.textContent = steps < requested
-    ? `Only ${durationLabel(horizon)} of history is available, so that is what is shown.`
-    : "";
+  ui.horizonHint.textContent = steps >= requested
+    ? ""
+    : narrowed
+      ? `The history used covers only ${durationLabel(horizon)}, so that is what is shown.`
+      : `Only ${durationLabel(horizon)} of history is available, so that is what is shown.`;
+  renderHistoryControls(full, series, requested);
   const years = steps / perYear;
   if (proMode) renderPlan(steps);
   ui.planHint.textContent = !proMode
@@ -972,24 +1114,35 @@ function render() {
   ui.fixedNote.textContent = input.real ? "% a year above inflation" : "% a year, guaranteed";
   if (result && input.fixed !== null) result.fixed = fixedPath(schedule, steps, input.fixed);
   if (!result) {
-    ui.chartSub.textContent = "Not enough history for this horizon.";
+    ui.chartSub.textContent = narrowed && !series.keys.length
+      ? "The history used contains no data for this series."
+      : "Not enough history for this horizon.";
     return;
   }
 
   ui.chartSub.textContent =
     `${durationLabel(horizon)} of ${instrument.name} in ${input.currency}, ` +
-    `replayed from all ${result.windows.toLocaleString()} start dates in the data.`;
+    (narrowed
+      ? `replayed from ${result.windows === 1 ? "the only start date" : `all ${result.windows.toLocaleString()} start dates`} that fit between ${keyLabel(series.keys[0])} and ${keyLabel(series.keys.at(-1))}.`
+      : `replayed from all ${result.windows.toLocaleString()} start dates in the data.`);
   ui.chartDesc.textContent =
     `Line chart of portfolio value over ${durationLabel(horizon)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
     `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))}, ` +
     `against ${money.format(result.paidIn.at(-1))} paid in. The median outcome was ${money.format(result.paths.median.at(-1))}.`;
   ui.windowsNote.textContent =
-    `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0])}.`;
+    `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0])}` +
+    (narrowed ? ` to ${keyLabel(series.keys.at(-1))}.` : ".");
 
   syncUrl(input);
   drawChart(result, years);
   renderTable(result);
-  renderAssumptions(series, result, { ...input, instrument, horizon, longer: longerHistory(instrument, input, steps, result) });
+  renderAssumptions(series, result, {
+    ...input, instrument, horizon,
+    // A chosen range is the thing to explain; the longer-series note would
+    // compare against all of another series and muddle the two.
+    narrowed: narrowed ? narrowedHistory(full, series, steps, result) : null,
+    longer: narrowed ? null : longerHistory(instrument, input, steps, result),
+  });
 }
 
 async function init() {
@@ -1000,6 +1153,8 @@ async function init() {
   ui.currency.replaceChildren(...Object.keys(CURRENCIES).map((code) =>
     Object.assign(document.createElement("option"), { value: code, textContent: `${code} — ${CURRENCIES[code]}` })));
   ui.currency.value = detectCurrency();
+  ui.historySpan.append(...SPAN_YEARS.map((years) =>
+    Object.assign(document.createElement("option"), { value: String(years), textContent: `The last ${years} years` })));
 
   // After the options exist, or a restored currency would have nowhere to land.
   const restored = applyState(location.search);
@@ -1063,13 +1218,13 @@ async function init() {
   // Clicking the backdrop closes it; the dialog itself sits inside those bounds.
   about.addEventListener("click", (e) => { if (e.target === about) about.close(); });
 
-  ui.modeToggle.addEventListener("click", () => setMode(!proMode));
+  ui.modeToggle.addEventListener("click", () => { carryRange(!proMode); setMode(!proMode); });
   ui.addEvent.addEventListener("click", () => {
     plan.push({ id: nextEventId++, amount: 0, out: false, cadence: "once", from: 0, to: null });
     render();
   });
   for (const control of [ui.instrument, ui.currency, ui.realTerms, ui.fixedOn, ui.fixedRate,
-                        ui.years, ui.months]) {
+                        ui.years, ui.months, ui.historySpan, ui.historyFrom, ui.historyTo]) {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);
