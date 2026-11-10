@@ -21,6 +21,14 @@ const SERIES = [
   { key: "worst", label: "Worst", color: "var(--s-worst)" },
 ];
 
+/**
+ * The calendar stretch a drawn timeline covers. Only best and worst get one:
+ * each is one particular start date, while the average is every window at once
+ * and has no dates to give.
+ */
+const DATED = new Set(["best", "worst"]);
+const periodOf = (pick) => `${keyLabel(pick.startKey)} \u2013 ${keyLabel(pick.endKey)}`;
+
 const PAID_IN = { key: "paidIn", label: "Paid in", color: "var(--s-paid)" };
 
 /** The line a savings calculator would have drawn, for comparison. */
@@ -156,14 +164,14 @@ function niceTicks(min, max, count = 5) {
 
 let chartState = null;
 
-function drawChart(result, years) {
+function drawChart(result, years, extraRight = 0) {
   const steps = result.steps;
   const width = host.clientWidth || 720;
   const height = svg.clientHeight || 380;
   // Below this width the right margin costs more than the labels are worth, so
   // the chart takes the full width and the legend carries the values instead.
   const narrow = width < 560;
-  const pad = { top: 16, right: narrow ? 14 : 132, bottom: 30, left: narrow ? 46 : 62 };
+  const pad = { top: 16, right: narrow ? 14 : 132 + extraRight, bottom: 30, left: narrow ? 46 : 62 };
   const plotW = Math.max(10, width - pad.left - pad.right);
   const plotH = Math.max(10, height - pad.top - pad.bottom);
 
@@ -172,7 +180,10 @@ function drawChart(result, years) {
   svg.replaceChildren(desc);
 
   const lines = [
-    ...SERIES.map((s) => ({ ...s, values: result.paths[s.key] })),
+    ...SERIES.map((s) => ({
+      ...s, values: result.paths[s.key],
+      period: DATED.has(s.key) ? periodOf(result.picks[s.key]) : null,
+    })),
     { ...PAID_IN, values: result.paidIn, dashed: true },
     ...(result.fixed ? [{ ...FIXED, values: result.fixed, fixed: true }] : []),
   ];
@@ -241,19 +252,35 @@ function drawChart(result, years) {
       .map((line) => ({
         text: line.label, color: line.color,
         value: money.format(line.values.at(-1)),
+        period: line.period,
         at: y(line.values.at(-1)),
+        // Name over value, plus the dates for best and worst, and a gap.
+        height: line.period ? 52 : 38,
       }))
       .sort((a, b) => a.at - b.at);
-    // Each label is two lines (name over value), so they need the height of both
-    // plus a gap before they stop colliding.
-    for (let i = 1; i < labels.length; i++) labels[i].at = Math.max(labels[i].at, labels[i - 1].at + 38);
-    const overflow = labels.at(-1).at - (pad.top + plotH);
+    for (let i = 1; i < labels.length; i++) {
+      labels[i].at = Math.max(labels[i].at, labels[i - 1].at + labels[i - 1].height);
+    }
+    const last = labels.at(-1);
+    const overflow = last.at + (last.height - 38) - (pad.top + plotH);
     if (overflow > 0) for (const label of labels) label.at -= overflow;
     for (const label of labels) {
       svg.append(
         el("text", { class: "series-label", fill: label.color, x: pad.left + plotW + 10, y: label.at + 1 }, label.text),
         el("text", { class: "series-value", x: pad.left + plotW + 10, y: label.at + 17 }, label.value),
       );
+      if (label.period) {
+        svg.append(el("text", { class: "series-period", x: pad.left + plotW + 10, y: label.at + 31 }, label.period));
+      }
+    }
+    // The margin is sized for the usual labels; the dates under best and worst
+    // can run past it depending on locale and font, so measure and redraw once
+    // with room for them rather than clip them.
+    if (!extraRight) {
+      const widest = Math.max(...[...svg.querySelectorAll(".series-label, .series-value, .series-period")]
+        .map((t) => t.getComputedTextLength()));
+      const over = Math.ceil(pad.left + plotW + 10 + widest + 4 - width);
+      if (over > 0) { drawChart(result, years, over); return; }
     }
   }
   renderLegend(lines, narrow);
@@ -868,12 +895,13 @@ function renderLegend(lines, withValues) {
   ui.legend.classList.toggle("legend--values", withValues);
   ui.legend.replaceChildren(...lines.map((line) => {
     const item = document.createElement("div");
-    item.className = "legend-item";
+    item.className = `legend-item${withValues && line.period ? " legend-item--dated" : ""}`;
     item.setAttribute("role", "listitem");
     item.innerHTML =
       `<span class="legend-swatch${line.dashed ? " legend-swatch--dashed" : ""}" style="color:${line.color}"></span>` +
       `<span class="legend-name">${line.label}</span>` +
-      (withValues ? `<span class="legend-value">${money.format(line.values.at(-1))}</span>` : "");
+      (withValues ? `<span class="legend-value">${money.format(line.values.at(-1))}</span>` : "") +
+      (withValues && line.period ? `<span class="legend-period">${line.period}</span>` : "");
     return item;
   }));
 }
@@ -1126,8 +1154,8 @@ function render() {
       ? `replayed from ${result.windows === 1 ? "the only start date" : `all ${result.windows.toLocaleString()} start dates`} that fit between ${keyLabel(series.keys[0])} and ${keyLabel(series.keys.at(-1))}.`
       : `replayed from all ${result.windows.toLocaleString()} start dates in the data.`);
   ui.chartDesc.textContent =
-    `Line chart of portfolio value over ${durationLabel(horizon)}. Best ends at ${money.format(result.paths.best.at(-1))}, ` +
-    `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))}, ` +
+    `Line chart of portfolio value over ${durationLabel(horizon)}. Best ends at ${money.format(result.paths.best.at(-1))} (${periodOf(result.picks.best)}), ` +
+    `average ${money.format(result.paths.average.at(-1))}, worst ${money.format(result.paths.worst.at(-1))} (${periodOf(result.picks.worst)}), ` +
     `against ${money.format(result.paidIn.at(-1))} paid in. The median outcome was ${money.format(result.paths.median.at(-1))}.`;
   ui.windowsNote.textContent =
     `Tested against ${result.windows.toLocaleString()} overlapping periods of ${durationLabel(horizon)} from ${keyLabel(series.keys[0])}` +
@@ -1228,6 +1256,9 @@ async function init() {
     control.addEventListener("input", render);
   }
   new ResizeObserver(() => chartState && drawChart(chartState.result, chartState.years)).observe(host);
+  // Labels are measured to size the right margin, so measure again in the real
+  // font once it arrives rather than keep a margin sized for the fallback.
+  document.fonts?.ready.then(() => chartState && drawChart(chartState.result, chartState.years));
   // Sync the DOM with the starting mode rather than trusting the markup to match.
   // A restored plan may not fit the simple fields, so pro mode wins if asked for.
   setMode(restored?.pro === true || (restored && !isSimplePlan()));
