@@ -91,6 +91,10 @@ function structure(file, data) {
     const jump = [...returnsByKey(instrument)].find(([, r]) => Math.abs(r) > limit);
     if (jump) { fail(`${label}: implausible ${(jump[1] * 100).toFixed(0)}% move at ${jump[0]}`); continue; }
 
+    // A bar from the month the fetch ran in is a mid-month price, not a close.
+    const fetchedKey = Number(String(data.fetchedAt).slice(0, 7).replace("-", ""));
+    if (keys.at(-1) >= fetchedKey) { fail(`${label}: ends ${keys.at(-1)}, the month it was fetched in, which was not over yet`); continue; }
+
     if (instrument.byCurrency) {
       const wrong = Object.entries(instrument.byCurrency).find(([, v]) => v.length !== keys.length);
       if (wrong) { fail(`${label}: byCurrency.${wrong[0]} has ${wrong[1].length} values, expected ${keys.length}`); continue; }

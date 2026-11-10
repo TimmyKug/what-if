@@ -405,6 +405,28 @@ async function eurostatPrices() {
   return cpi;
 }
 
+/**
+ * Drops the month the fetch runs in, from every series. Its bar is not a
+ * month-end close yet, just the latest price, so storing it bakes a mid-month
+ * value into the history; the next refresh then sees the real close for the
+ * same month and the verify step rightly reads that as a changed series.
+ * Mutates `series.months`, `series.values` and any `byCurrency` arrays together.
+ */
+const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
+
+function dropIncompleteMonth(series) {
+  const keep = series.months.findIndex((m) => m >= CURRENT_MONTH);
+  if (keep < 0) return series;
+  series.months = series.months.slice(0, keep);
+  series.values = series.values.slice(0, keep);
+  if (series.byCurrency) {
+    for (const code of Object.keys(series.byCurrency)) {
+      series.byCurrency[code] = series.byCurrency[code].slice(0, keep);
+    }
+  }
+  return series;
+}
+
 async function main() {
   const instruments = [];
   for (const spec of INSTRUMENTS) {
@@ -465,6 +487,9 @@ async function main() {
   for (const [code, series] of Object.entries(cpi)) {
     console.log(`${`CPI ${code}`.padEnd(18)} ${series.months[0]} → ${series.months.at(-1)}  ${series.months.length} months`);
   }
+
+  for (const series of [...instruments, ...Object.values(fx), ...Object.values(cpi)]) dropIncompleteMonth(series);
+  console.log(`\ndropped anything from ${CURRENT_MONTH} on: that month is not over yet`);
 
   await writeFile(
     OUT,
