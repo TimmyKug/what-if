@@ -230,6 +230,15 @@ async function msciLevels(code, currency) {
   return { months, values: months.map((m) => round(byMonth.get(m))) };
 }
 
+/** `YYYY-MM` of a Unix timestamp in an IANA time zone, daylight saving included. */
+function monthIn(zone) {
+  const format = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit" });
+  return (ts) => {
+    const parts = Object.fromEntries(format.formatToParts(new Date(ts * 1000)).map((p) => [p.type, p.value]));
+    return `${parts.year}-${parts.month}`;
+  };
+}
+
 async function chart(symbol) {
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
@@ -244,20 +253,29 @@ async function chart(symbol) {
   const values = adjclose ?? close;
   if (!values) throw new Error(`${symbol}: no price series`);
 
-  // Yahoo stamps each monthly bar at the first day of the month in *exchange-local*
-  // time, which for a European listing is 22:00 or 23:00 UTC on the last day of the
-  // month before. Reading it as UTC therefore labels every bar one month early, and
-  // then pairs it with the wrong month's exchange rate. Shift by the exchange's own
-  // offset before taking the month. (The last bar is stamped "today", so keeping the
-  // last value seen per month still collapses it onto the right one.)
-  const offset = result.meta.gmtoffset ?? 0;
+  // Yahoo stamps each monthly bar at midnight on the first of the month in
+  // *exchange-local* time, which for a European listing is 22:00 or 23:00 UTC on
+  // the last day of the month before. Reading it as UTC therefore labels every
+  // bar one month early, and then pairs it with the wrong month's exchange rate.
+  //
+  // The month has to be read in the exchange's own time zone, per bar. This used
+  // to add `meta.gmtoffset`, but that is the exchange's offset *today*: fetched
+  // in winter it is an hour short for every summer bar, which lands those at
+  // 23:00 on the last day of the month before, two bars collide in one month and
+  // one is lost — 36 of the S&P 500's months in a November fetch. Fetched in
+  // summer it happened to work, which is why it went unnoticed.
+  const zone = result.meta.exchangeTimezoneName;
+  const monthOf = zone
+    ? monthIn(zone)
+    : (ts) => new Date((ts + (result.meta.gmtoffset ?? 0)) * 1000).toISOString().slice(0, 7);
   const byMonth = new Map();
   result.timestamp.forEach((ts, i) => {
     const v = values[i];
     if (v == null || !Number.isFinite(v) || v <= 0) return;
-    const d = new Date((ts + offset) * 1000);
-    const month = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    byMonth.set(month, v);
+    // The last bar is stamped "now" rather than on the first, so keeping the last
+    // value seen per month collapses it onto the month it belongs to, which
+    // dropIncompleteMonth then removes as unfinished.
+    byMonth.set(monthOf(ts), v);
   });
 
   const months = [...byMonth.keys()].sort();
